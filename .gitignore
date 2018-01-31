@@ -1,4 +1,8 @@
 *.pyc
-*~
+
+#vim files
+*.sw*
+
+
 ignored_pythonfiles/
 temp/
