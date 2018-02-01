@@ -1,5 +1,8 @@
 import numpy as np
 
+def integers(shape):
+    return np.random.randint(-3,3, size=shape)
+
 def glorot_uniform(shape):
     output_dim, input_dim = shape[:2]
     bound = 6.0/np.sqrt(output_dim + input_dim)
@@ -16,4 +19,6 @@ def xavier(shape):
 
 kernels = { 'glorot_uniform': glorot_uniform,\
             'normal': normal,\
-            'xavier': xavier}
+            'xavier': xavier,\
+            'integers': integers}
+
