@@ -30,9 +30,31 @@ class Conv2D:
         width = (weight_prev + 2*self.p - self.f)/self.s + 1
         new = np.zeros((height, width, self.c, m))
 
-        s = self.s
+        #prepare for convolution (corrext axis so that shapes fit for * operation)
+        a = a[:,:,:,np.newaxis,:] #(height, width, c_prev, m) -> (height, width, c_prev, AXIS, m)
+        W = self.w[...,np.newaxis] #(f, f, c_prev, c) -> (f, f, c_prev, c, AXIS)
+        #this way, when summing over the first three axis( height/f, width/f, c_prev) a tensor with indices c,m (in this order) is created
+        #compare to the shape of the tensor 'new'
+
         #convolution
         for h in height:
             for w in width:
-                new[h,w,:,:] = np.sum(a[h*s:(h+1)*s, w*s:(w+1)*s,:,:] * self.w, axis = (0,1,2))
+                start = h*self.s
+                end = h*self.s + f
+                image_patch = a[start:end, start:end,...]
+                new[h,w,:,:] = np.sum(image_patch * W, axis = (0,1,2)) + float(self.b)
+        return new
 
+
+    def grads(self, a_prev, N):
+        pass
+
+    def get_error(self, back_err):
+        pass
+
+    def backward(self):
+        pass
+
+    def update(self, lr)
+        self.w -= lr * self.dw
+        self.b -= lr * self.db  

@@ -36,6 +36,16 @@ def mae(ypred, ytrue):
     return ratio, float(np.squeeze(np.mean(ratio, axis=1, keepdims=True)))
 mean_average_error = mae
 
+def _cross_entropy(ypred, ytrue):
+    assert(ypred.shape == ytrue.shape)
+    N = ytrue.shape[1]
+    return -np.sum( ytrue*np.log(ypred))
+def _derivative_cross_entropy(ypred, ytrue):
+    diff = - ytrue / ypred
+
+    
+
+
 def derivative(ypred, ytrue, func='mse', arg=''):
     func = 'derivative_' + func
     if arg == '':
