@@ -6,13 +6,26 @@ class Network:
         self.derivative_lossfunction = loss['derivative']
         self.epoch = 0
 
-    def __string__(self):
-        pass
+    def info(self):
+        '''print model information'''
+        number_params = 0
+        params = ['w','b','beta','gamma']
+        for layer in self.layers:
+            for param in params:
+                if hasattr(layer,param):
+                    N = np.multiply.accumulate(layer.param.shape)[-1]
+                    number_params += N
+                
+        s = 'model information:\n'
+        s += 'layers: %i' % self.L
+        s += 'number of parameters: %i' % number_params
+        print s
 
     def add(self, layer):
         l = len(self.layers) + 1
+        layer.l = l
         self.layers[l] = layer
-        #self.set_attributes(layer.params, l)
+        #self.set_attributes(layer.params, l) 
  
     def compile(self, lr=0.001):
         self.batch_norm = False
@@ -36,8 +49,8 @@ class Network:
             getattr(self, parameter_name)[l] = parameter 
 
     def forward_step(self, a):
-        for l, layer in self.layers.items():
-            if l == 0: continue
+        for l, layer in self.layers.items()[1:]:
+            #if l == 0: continue
             a = layer.forward(a)
         return a
     

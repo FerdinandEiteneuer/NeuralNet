@@ -3,16 +3,29 @@ import numpy as np
 
 class Conv2D:
     def __init__(self, filtersize, stride, padding, activation, kernel_initializer):
+        self.g = activation
+
         self.f = filtersize[0]
         self.s = stride
-        self.p = padding
 
-        #pad only height and width (and not channels, trainexamples)
-        self.pads = ((self.p, self.p),(self.p, self.p),(0,0), (0,0))
+        self.get_padding(padding) #gets self.p / self.pads
 
         self.c_prev = filtersize[2] #input channels
         self.c = filtersize[3] #amount of new channels
         self.initialize_params(kernel_initializer)
+
+    def get_padding(self, padding):
+        self.pad_anything = True
+        if type(padding) == int:
+            self.p = padding
+            if self.p == 0:
+                self.pad_anything = False
+        elif padding == 'valid':
+            self.p = None #what about self.pad_anything? here and same
+        elif padding == 'same':
+            self.p = None
+        #pad only height and width (and not channels, trainexamples)
+        self.pads = ((self.p, self.p),(self.p, self.p),(0,0), (0,0))
 
     def initialize_params(self, kernel_initializer):
         shape = (self.f, self.f, self.c_prev, self.c)
@@ -21,14 +34,15 @@ class Conv2D:
 
     def forward(self, a):
         #zero padding
-        a = np.pad(a, pad_width=self.pads, mode='constant', constant_values=0)
+        if self.pad_anything:
+            a = np.pad(a, pad_width=self.pads, mode='constant', constant_values=0)
         height_prev, width_prev, channels_prev, m = a.shape
         assert(channels_prev == self.c_prev)
 
         #create output volume
         height = (height_prev + 2*self.p - self.f)/self.s + 1
         width = (width_prev + 2*self.p - self.f)/self.s + 1
-        new = np.zeros((height, width, self.c, m))
+        self.z = np.zeros((height, width, self.c, m))
 
         #prepare for convolution (corrext axis so that shapes fit for * operation)
         a = a[:,:,:,np.newaxis,:] #(height, width, c_prev, m) -> (height, width, c_prev, AXIS, m)
@@ -47,16 +61,20 @@ class Conv2D:
 
                 image_patch = a[start_h:end_h, start_w:end_w,:,:]
                 #print 'PIXEL h:%i, w:%i' % (h, w)
-                new[h,w,:,:] = np.sum(image_patch * W, axis = (0,1,2)) + self.b
-                print 'shape',new[h,w,:,:].shape, self.b.shape
-        return new
+                self.z[h,w,:,:] = np.sum(image_patch * W, axis = (0,1,2)) + self.b
+                #print 'shape',new[h,w,:,:].shape, self.b.shape
+   
+        self.a = self.g(self.z) 
+        return self.z, self.a
 
 
     def grads(self, a_prev, N):
-        pass
+        self.dw = None
+
+        self.db = None
 
     def get_error(self, back_err):
-        pass
+        
 
     def backward(self):
         pass
@@ -73,7 +91,7 @@ if __name__ == '__main__':
     x = np.random.randint(1,5,(3,3,1,1))
 
     conv = Conv2D((2,2,1,2), 1, 0, relu, 'integers')
-    a = conv.forward(x)
+    z, a = conv.forward(x)
 
     w = conv.w
     f1 = w[:,:,0,0]

@@ -58,6 +58,13 @@ def lrelu(z, alpha, derivative=False):
         return z
 act['lrelu'] = lrelu
 
+def linear(z, derivative=False):
+    if not derivative:
+        return z
+    else:
+        return np.ones(z.shape)
+act['linear'] = linear
+
 def prelu(z):
     pass
 

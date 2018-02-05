@@ -1,4 +1,16 @@
 import numpy as np
+   
+def load_mnist(path = '/home/gefett/python/data/mnist/', loadval = 0)
+    trainx = np.load(path + 'trainx')
+    trainy = np.load(path + 'trainy')
+    testx = np.load(path + 'testx')
+    testy = np.load(path + 'testy')
+    if loadval:
+        valx = np.load(path + 'valx')
+        valy = np.load(path + 'valy') 
+        return trainx, trainy, testx, testy, valx, valy 
+    else:
+        return trainx, trainy, testx, testy
 
 def generate_test_data(N=10000):
     #y=np.random.uniform(0,1,(1,N))
