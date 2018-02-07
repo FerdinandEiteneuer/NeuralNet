@@ -69,19 +69,57 @@ class Conv2D:
 
 
     def grads(self, a_prev, N):
-        self.dw = None
-
+        I, J, C, N = self.error.shape
+        
+        self.dw =  None
         self.db = None
 
     def get_error(self, back_err):
-        
+        self.error = back_err * self.g(self.z, derivative=True)
+        return self.error
 
     def backward(self):
-        pass
+        height, width, channels, m = self.z.shape
+        self.backerr = np.zeros(self.z.shape)
+    
+        indices = lower_upper_summation_indices(height, self.f, self.s)
+    
+        for h in range(height):
+            for w in range(width):
+                low, up = indices[h], indices[w]
+                error_part = self.error[low:up:,:,:]
+                error_part = error_part[:,:,:,np.newaxis,:]
+
+                axis1 = h - self.s * low
+                axis2 = w - self.s * up
+                W_part = self.w[np.ix_(axis1, axis2)]
+                W_part = np.transpose(W_part, (0,1,3,2))
+                W_part = W_part[...,np.newaxis]
+
+                back_part = np.sum(error_part, W_part, axis=(0,1,2))
+                self.backerr[h,w,:,:] = back_part
+        return self.backerr 
+        
 
     def update(self, lr):
         self.w -= lr * self.dw
         self.b -= lr * self.db
+
+    def lower_upper_summation_indices(self, h, f, s):
+        #lower
+        mins = []
+        for i in range(0, h):
+           mins.append(int(max(0, round((i-f+1)/float(s)))))
+
+        #upper is just shifted
+        delta = abs(f-s)
+        h_next = int((h - f)/float(s)) + 1
+        stop_at = h_next - 1
+        maxs = mins[delta:] + delta*[stop_at]
+
+        mins = np.array(mins)
+        maxs = np.array(maxs) + 1 #+1 because range(a,b) not inclusive for upper index
+        return mins, maxs
 
 
 if __name__ == '__main__':

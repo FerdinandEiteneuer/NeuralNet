@@ -33,7 +33,7 @@ def mae(ypred, ytrue):
     assert(ypred.shape == ytrue.shape)
     N = ypred.shape[1]
     ratio = np.abs((ypred - ytrue) / ytrue)
-    return ratio, float(np.squeeze(np.mean(ratio, axis=1, keepdims=True)))
+    return ratio[0], float(np.squeeze(np.mean(ratio, axis=1, keepdims=True)))
 mean_average_error = mae
 
 def _cross_entropy(ypred, ytrue):

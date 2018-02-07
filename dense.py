@@ -14,7 +14,6 @@ class Dense:
         self.b = np.zeros((output_dim, 1))
 
     def forward(self, a):
-        #print self.w.shape, a.shape, self.b.shape
         self.z = np.dot(self.w, a) + self.b
         self.a = self.g(self.z)
         self.params.update({'z': self.z, 'a': self.a})

@@ -45,7 +45,7 @@ def tanh(z, derivative=False):
     if not derivative:
         return np.tanh(z)
     else:
-        return 1 + np.tanh(z) ** 2
+        return 1 - np.tanh(z) ** 2
 act['tanh'] = tanh
 
 def lrelu(z, alpha, derivative=False):
