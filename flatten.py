@@ -1,7 +1,7 @@
 import numpy as np
 from activations import linear
 
-class Flatten(self):
+class Flatten:
     def __init__(self):
         self.g = linear
 
@@ -16,12 +16,13 @@ class Flatten(self):
 
     def get_error(self, back_err):
         #just reshape the error delta^l_{jn} into ~ delta^l_{i,j,c,n)
-        self.error = np.reshape(back_err, (self.n_H, self.n_W, self.c, self.m))
+        #print '\tinside flattened.get_error: back_err shape:', back_err.shape
+        self.error = back_err #activation function is linear, hence derivative of it is just one, omit it.
         return self.error
     
     def backward(self):
         #dont need to do modify self.error here
-        self.backerr = self.error
+        self.backerr = np.reshape(self.error , (self.n_H, self.n_W, self.c, self.m))
         return self.backerr
 
     def update(self, lr):

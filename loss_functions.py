@@ -24,9 +24,7 @@ def _derivative_mse(ypred, ytrue):
     derivative = 2 * diff
     assert(derivative.shape == ypred.shape)
     return derivative
-
-mse = (_mse, _derivative_mse)
-mean_square_error = {'function': _mse, 'derivative': _derivative_mse}
+mse = {'function': _mse, 'derivative': _derivative_mse}
 
 
 def mae(ypred, ytrue):
@@ -39,10 +37,11 @@ mean_average_error = mae
 def _cross_entropy(ypred, ytrue):
     assert(ypred.shape == ytrue.shape)
     N = ytrue.shape[1]
-    return -np.sum( ytrue*np.log(ypred))
+    return - np.sum(ytrue*np.log(ypred), keepdims=True)
 def _derivative_cross_entropy(ypred, ytrue):
-    diff = - ytrue / ypred
-
+    derivative = - np.sum(ytrue / ypred)
+    return derivative
+cross_entropy = {'function': _cross_entropy, 'derivative': _derivative_cross_entropy}
     
 
 

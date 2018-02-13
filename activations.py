@@ -26,11 +26,14 @@ act['relu'] = relu
 
        
 def softmax(z, derivative=False):
-    if not derivative:    
-        return np.exp(z)/np.sum(z, axis=0, keepdims=True)
+    if not derivative:
+        exp_z = np.exp(z)
+        return exp_z / np.sum(exp_z, axis=0, keepdims=True)    
     else:
-        N = np.sum(z, axis=0, keepdims=True)
-        return np.exp(z)/N - np.exp(2*z) / N ** 2
+        exp_z = np.exp(z)
+        N = np.sum(exp_z, axis=0, keepdims=True)
+        return exp_z / N - exp_z ** 2 / N ** 2
+        #return np.exp(z)/N - np.exp(2*z) / N ** 2
 act['softmax'] = softmax
 
 def binary_crossentropy(z, derivative=False):
@@ -48,9 +51,9 @@ def tanh(z, derivative=False):
         return 1 - np.tanh(z) ** 2
 act['tanh'] = tanh
 
-def lrelu(z, alpha, derivative=False):
+def lrelu(z, alpha=0.1, derivative=False):
     if not derivative:
-        z[z<0] = alhpa * z
+        z[z<0] = alpha * z
         return z
     else:
         z[z<0] = alpha

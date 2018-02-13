@@ -10,8 +10,7 @@ def glorot_uniform(shape):
     return w
 
 def normal(shape):
-    output_dim, input_dim = shape[:2]
-    w = 0.01 * np.random.normal(size=(output_dim, input_dim))
+    w = 0.01 * np.random.normal(size=shape)
     return w
    
 def xavier(shape):

@@ -1,16 +1,34 @@
 import numpy as np
-   
-def load_mnist(path = '/home/gefett/python/data/mnist/', loadvaldata = 0):
-    trainx = np.load(path + 'trainx')
-    trainy = np.load(path + 'trainy')
-    testx = np.load(path + 'testx')
-    testy = np.load(path + 'testy')
+
+def one_hot(ydata, classes):
+    y = np.zeros((classes, ydata.shape[0]))
+    for i in np.arange(ydata.shape[0]):
+        y[ydata[i],i] = 1
+    return y
+
+def load_mnist(path = '/home/gefett/python/data/mnist/', load_test_val_data = (0,0)):
+    load_test, load_val = load_test_val_data
+    trainx = np.load(path + 'trainx.npy')
+    trainy = np.load(path + 'trainy.npy')
+    if load_test:
+        testx = np.load(path + 'testx.npy')
+        testy = np.load(path + 'testy.npy')
+    else:
+        return trainx, trainy
     if loadvaldata:
-        valx = np.load(path + 'valx')
-        valy = np.load(path + 'valy') 
+        valx = np.load(path + 'valx.npy')
+        valy = np.load(path + 'valy.npy') 
         return trainx, trainy, testx, testy, valx, valy 
     else:
         return trainx, trainy, testx, testy
+
+def generate_conv_test_data(N=20, dim=17, classes=3):
+    shape=(dim,dim,1,N)
+    trainx = np.random.randint(0,100,shape)
+    #trainx = np.ones(shape)
+    cls = np.random.randint(0, classes, N)
+    trainy = one_hot(cls, classes)
+    return trainx, trainy
 
 def generate_test_data(N=10000):
     #y=np.random.uniform(0,1,(1,N))
@@ -46,13 +64,12 @@ def minibatches(x, y, size=32):
     '''generates minibatches of given size
         does not work on the fly, generates all at once'''
 
-    N = x.shape[1]
-    assert(N == y.shape[1])
+    N = x.shape[-1]
+    assert(N == y.shape[-1])
     
-    random_choice = np.random.permutation(np.arange(N))
-
-    x = x[:,random_choice]
-    y = y[:,random_choice]
+    #random_choice = np.random.permutation(np.arange(N))
+    #x = x[:,random_choice]
+    #y = y[:,random_choice]
 
     N, size = int(N), int(size)
     N_batches = N / size
@@ -64,7 +81,7 @@ def minibatches(x, y, size=32):
     for i in range(N_batches):
         start = i * size
         end = (i+1) * size
-        mini_x = x[:,start:end]
+        mini_x = x[...,start:end]
         mini_y = y[:,start:end]
         batches.append((mini_x, mini_y))
 

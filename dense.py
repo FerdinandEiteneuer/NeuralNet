@@ -13,10 +13,19 @@ class Dense:
         self.w = kernels[kernel_init](shape)
         self.b = np.zeros((output_dim, 1))
 
-    def forward(self, a):
+    def forward(self, a, gradient_check = False, grad_check_info=0):
+        
+        if gradient_check:
+            w_temp = np.copy(self.w)
+            j, k, _, _, eps = grad_check_info
+            self.w[j,k] += eps
+
         self.z = np.dot(self.w, a) + self.b
         self.a = self.g(self.z)
         self.params.update({'z': self.z, 'a': self.a})
+
+        if gradient_check:
+            self.w = w_temp
         
         return self.a
 
