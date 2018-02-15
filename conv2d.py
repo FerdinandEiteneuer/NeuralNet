@@ -103,7 +103,13 @@ class Conv2D:
         self.error = back_err * self.g(self.z, derivative=True)
         return self.error
 
-    def backward(self, verbose=False):
+    def backward(self, verbose=True, mode=2):
+        if mode == 1:
+            return self.backward1(verbose)
+        elif mode == 2:
+            return self.backward2(verbose)
+
+    def backward1(self, verbose=False):
         height = width = self.s*(self.z.shape[0] - 1) - 2*self.p + self.f #this is the shape of previous activation
         channels = self.c_prev
         n = self.z.shape[3]
@@ -139,6 +145,47 @@ class Conv2D:
         if verbose: print '\tcalculated back_err_%s for next shallow layer. shape:' % (self.l),  self.backerr.shape
         return self.backerr 
         
+    def backward2(self, verbose=False):
+        height = width = self.s*(self.z.shape[0] - 1) - 2*self.p + self.f #this is the shape of previous activation
+        channels = self.c_prev
+        n = self.z.shape[3]
+        self.backerr = np.zeros((height, width, channels, n))
+        
+        I_max, J_max, C_max = self.z.shape[:3]
+        
+        for h in range(height):
+            for w in range(width):
+                I = np.arange(I_max)
+                J = np.arange(J_max)
+                if verbose: print 'h:%i, w:%s' % ( h,w)
+                idx_I = h - self.s * I
+                mask_I = idx_I > 0
+
+                idx_J = w - self.s * J
+                mask_J = idx_J > 0
+
+            
+                idx_I = idx_I[mask_I]
+                idx_J = idx_J[mask_J]
+                error_part = self.error[np.ix_(I[mask_I], J[mask_J])]
+                if verbose: print error_part.shape
+                error_part = error_part[:,:,np.newaxis,:,:]
+                if verbose: print error_part.shape
+
+                if verbose: print self.w.shape, idx_I, idx_J
+                W_part = self.w[np.ix_(idx_I, idx_J)]
+                if verbose: print W_part.shape
+                W_part = W_part[...,np.newaxis]
+                if verbose: print W_part.shape
+                
+                if verbose: print 'error_part', error_part.shape,'*', 'W_part', W_part.shape
+                back_part = np.sum(error_part * W_part, axis=(0,1,3))
+                if verbose: print 'back_part = error_part*W_part shape ',back_part.shape
+                self.backerr[h,w,:,:] = back_part
+        if verbose: print '\tcalculated back_err_%s for next shallow layer. shape:' % (self.l),  self.backerr.shape
+        return self.backerr 
+        
+
 
     def update(self, lr):
         self.w -= lr * self.dw

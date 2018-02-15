@@ -9,6 +9,7 @@ import misc
 
 import numpy as np, sys
 np.warnings.filterwarnings('ignore')
+np.random.seed(1)
 epochs = int(sys.argv[1])
 
 
@@ -49,13 +50,13 @@ model.add(Conv2D(filter1,2,0, act, kernel_init))
 model.add(Conv2D(filter2,2,0, act, kernel_init))
 model.add(Flatten())
 model.add(Dense(flat_depth, output_dim, softmax, kernel_init))
-model.compile(loss = cross_entropy, lr = 0.001)
+model.compile(loss = cross_entropy, lr = 0.0005)
 l = model.layers
 
 printeach = 1
 for epoch in range(1, epochs):
     model.lr *= 0.995
-    minibatches = misc.minibatches(xtrain, ytrain, size=1)
+    minibatches = misc.minibatches(xtrain, ytrain, size=10)
     for m, minibatch in enumerate(minibatches):
         model.train_step(minibatch)
         xmini, ymini = minibatch
@@ -63,7 +64,7 @@ for epoch in range(1, epochs):
         print 'epoch',epoch, 'minibatch',m, 'loss',loss[0,0]
         ratio, grad_manual, grad_backprop = model.gradient_check(xmini, ymini, 1, (0,0,0,0))
         print 'gradient checking:', ratio, 'manual calculation', grad_manual, 'backprop', grad_backprop
-    sys.exit()
+        sys.exit()
 pred = model.predict(xtrain) 
 print pred
 print ytrain
