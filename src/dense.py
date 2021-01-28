@@ -5,7 +5,7 @@ import numpy as np
 class Dense:
     def __init__(self, input_dim, output_dim, activation, kernel_init):
         self.g = activation
-        self.initialize_params(input_dim, output_dim, kernel_init)    
+        self.initialize_params(input_dim, output_dim, kernel_init)
         self.params = {'w': self.w, 'b': self.b}
 
     def initialize_params(self, input_dim, output_dim, kernel_init):
@@ -14,7 +14,6 @@ class Dense:
         self.b = np.zeros((output_dim, 1))
 
     def forward(self, a, gradient_check = False, grad_check_info=0):
-        
         if gradient_check:
             w_temp = np.copy(self.w)
             j, k, _, _, eps = grad_check_info
@@ -26,7 +25,7 @@ class Dense:
 
         if gradient_check:
             self.w = w_temp
-        
+
         return self.a
 
     def grads(self, a_prev, N):
@@ -36,7 +35,7 @@ class Dense:
     def get_error(self, back_err):
         self.error = back_err * self.g(self.z, derivative=True)
         return self.error
-    
+
     def backward(self):
         self.backerr = np.dot(self.w.T, self.error)
         return self.backerr

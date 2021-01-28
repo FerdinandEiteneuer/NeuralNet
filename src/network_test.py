@@ -10,8 +10,11 @@ import misc
 import numpy as np, sys
 np.warnings.filterwarnings('ignore')
 np.random.seed(1)
-epochs = int(sys.argv[1])
 
+try:
+    epochs = int(sys.argv[1])
+except IndexError:
+    epochs = 30
 
 #x, y = misc.generate_test_data(10000)
 #x, y = misc.load_california_housing()
@@ -19,7 +22,7 @@ epochs = int(sys.argv[1])
 
 xtrain, ytrain = misc.load_mnist()
 #xtrain, ytrain = misc.generate_conv_test_data()
-    
+
 model = Network(verbose=False)
 
 input_dim = xtrain.shape[0]
@@ -30,13 +33,13 @@ kernel_init = 'glorot_uniform'
 kernel_init= 'normal'
 act = relu
 
-'''
-depth = 10
+depth = 30
 model.add(Dense(input_dim, depth, relu, kernel_init))
 #model.add(Dense(depth, depth, relu, kernel_init))
 #model.add(Dense(depth, depth, relu, kernel_init))
 model.add(Dense(depth, output_dim, kernel_init))
-model.compile(loss = mae, lr = 0.00001)
+model.compile(loss = mse, lr = 0.001)
+
 '''
 
 #filter1 = (5,5,1,3)
@@ -51,6 +54,7 @@ model.add(Conv2D(filter2,2,0, act, kernel_init))
 model.add(Flatten())
 model.add(Dense(flat_depth, output_dim, softmax, kernel_init))
 model.compile(loss = cross_entropy, lr = 0.0005)
+'''
 l = model.layers
 
 printeach = 1
@@ -65,7 +69,7 @@ for epoch in range(1, epochs):
         ratio, grad_manual, grad_backprop = model.gradient_check(xmini, ymini, 1, (0,0,0,0))
         print('gradient checking:', ratio, 'manual calculation', grad_manual, 'backprop', grad_backprop)
         sys.exit()
-pred = model.predict(xtrain) 
+pred = model.predict(xtrain)
 print(pred)
 print(ytrain)
 

@@ -2,7 +2,7 @@ from flatten import Flatten
 import numpy as np
 
 class Network:
-    
+
     def __init__(self, verbose=True):
         self.layers = {}
         self.epoch = 0
@@ -17,9 +17,9 @@ class Network:
                 if hasattr(layer,param):
                     N = np.multiply.accumulate(getattr(layer,param).shape)[-1]
                     number_params += N
-                
+
         s = 'model information:\n'
-        s += '  layers: %i\n' % self.L - 1 
+        s += '  layers: %i\n' % self.L - 1
         s += '  number of parameters: %i' % number_params
         print(s)
 
@@ -27,10 +27,10 @@ class Network:
         l = len(self.layers) + 1
         layer.l = l
         self.layers[l] = layer
-        #self.set_attributes(layer.params, l) 
+        #self.set_attributes(layer.params, l)
         if isinstance(layer, Flatten):
            layer.w = self.layers[l-1].w
-  
+
     def compile(self, loss, lr):
         self.batch_norm = False
         for l in self.layers:
@@ -45,21 +45,21 @@ class Network:
         self.lr = lr
         self.lossfunction = loss['function']
         self.derivative_lossfunction = loss['derivative']
- 
+
     def set_attributes(self, params, l):
         for parameter_name, parameter in list(params.items()):
             if not hasattr(self, parameter_name):
                 setattr(self, parameter_name, {})
-            
+
             #add for example self.w[l] = weight_matrix_layer_l
-            getattr(self, parameter_name)[l] = parameter 
+            getattr(self, parameter_name)[l] = parameter
 
     def forward_step(self, a):
         for l, layer in list(self.layers.items())[1:]:
             a = layer.forward(a)
             if self.verbose: print('layer %s' % l, 'activation shape', a.shape)
         return a
-    
+
     def train_step(self, train_minibatch):
         #do forward step
         x, y = train_minibatch
@@ -81,10 +81,10 @@ class Network:
 
             layer.get_error(back_err)
             layer.grads(a_prev, N)
-            layer.update(self.lr) 
+            layer.update(self.lr)
             back_err = layer.backward()
             #print '\terror shape', layer.error.shape
-    
+
         #self.optimizer.update()
 
     def get_loss(self, x, ytrue):
@@ -111,7 +111,7 @@ class Network:
                     a = layer.forward(a, gradient_check=True, grad_check_info = grad_check_info + (tinychange,))
                 else:
                     a = layer.forward(a)
-                     
+
             cost = multiplier * self.get_loss(x, ytrue)
             grad_manual += cost
 
@@ -119,7 +119,7 @@ class Network:
 
         if take_weights:
             grad_backprop = self.layers[check_layer].dw[check_k, check_j, check_c_prev, check_c]
-        
+
         #print('in gradcheck:', grad_manual, grad_backprop)
         if grad_manual == 0:
             if grad_backprop == 0:
@@ -133,7 +133,7 @@ class Network:
                     parameter = 'w[%i][%i,%i,%i,%i]' % (check_layer, check_k, check_j, check_c_prev, check_c)
                 print('ratio backprop/manual=%.5f. cause: %s' % (ratio, parameter))
         return ratio, grad_manual, grad_backprop
-        
+
 
     def save_model(self, name):
         #h5 file
