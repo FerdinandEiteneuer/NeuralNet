@@ -1,5 +1,11 @@
 import numpy as np
-import tensorflow as tf
+import sys
+
+try:
+    import tensorflow as tf
+except ModuleNotFoundError:
+    print('Can not download mnist dataset. tensorflow not installed')
+    sys.exit(-1)
 
 DATA_URL = 'https://storage.googleapis.com/tensorflow/tf-keras-datasets/mnist.npz'
 
