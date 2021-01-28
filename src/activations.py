@@ -24,11 +24,11 @@ def relu(z, derivative=False):
         return z
 act['relu'] = relu
 
-       
+
 def softmax(z, derivative=False):
     if not derivative:
         exp_z = np.exp(z)
-        return exp_z / np.sum(exp_z, axis=0, keepdims=True)    
+        return exp_z / np.sum(exp_z, axis=0, keepdims=True)
     else:
         exp_z = np.exp(z)
         N = np.sum(exp_z, axis=0, keepdims=True)

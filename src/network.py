@@ -1,35 +1,36 @@
+import layer
 from flatten import Flatten
 import numpy as np
 
-class Network:
+class Network(list):
 
     def __init__(self, verbose=True):
+
         self.layers = {}
         self.epoch = 0
         self.verbose=verbose
 
-    def info(self):
-        '''print model information'''
+        self.append(layer.Layer())  # starting layer, for holding input values to the network
+
+    def __str__(self):
         number_params = 0
         params = ['w','b','beta','gamma']
-        for l, layer in list(self.layers.items()):
+        for layer in self:
             for param in params:
                 if hasattr(layer,param):
                     N = np.multiply.accumulate(getattr(layer,param).shape)[-1]
                     number_params += N
 
         s = 'model information:\n'
-        s += '  layers: %i\n' % self.L - 1
+        s += '  layers: %i\n' % len(self)
         s += '  number of parameters: %i' % number_params
         print(s)
 
+    def __call__(self, a):
+        return self.forward_step(a)
+
     def add(self, layer):
-        l = len(self.layers) + 1
-        layer.l = l
-        self.layers[l] = layer
-        #self.set_attributes(layer.params, l)
-        if isinstance(layer, Flatten):
-           layer.w = self.layers[l-1].w
+        self.append(layer)
 
     def compile(self, loss, lr):
         self.batch_norm = False
@@ -37,51 +38,55 @@ class Network:
             try:
                 if l.info == 'batch':
                     self.batch_norm = True
-            except:
+            except AttributeError:
                 pass
-        self.L = len(self.layers)
-        class placeholder: pass
-        self.layers[0] = placeholder()
+
         self.lr = lr
         self.lossfunction = loss['function']
         self.derivative_lossfunction = loss['derivative']
 
-    def set_attributes(self, params, l):
-        for parameter_name, parameter in list(params.items()):
-            if not hasattr(self, parameter_name):
-                setattr(self, parameter_name, {})
-
-            #add for example self.w[l] = weight_matrix_layer_l
-            getattr(self, parameter_name)[l] = parameter
-
     def forward_step(self, a):
-        for l, layer in list(self.layers.items())[1:]:
-            a = layer.forward(a)
-            if self.verbose: print('layer %s' % l, 'activation shape', a.shape)
+
+        self[0].a = a
+        if self.verbose: print('START FORWARD STEP')
+        for layer in self:
+            a = layer(a)
+            if self.verbose: print(f'{a.shape=}')
+            if self.verbose: print(layer)
         return a
 
-    def train_step(self, train_minibatch):
-        #do forward step
-        x, y = train_minibatch
-        self.layers[0].a = x
+    def train_on_batch(self, x, y):
+        self.forward_step(x)
+        self.backpropagation(x, y)
 
-        N = y.shape[1]
-        self.epoch += 1
-        a = self.forward_step(x)
+    def backpropagation(self, x, y):
+        if self.verbose: print('START BACKPROP')
 
-        #backprop. first do last layer, then the rest
-        back_err = self.derivative_lossfunction(a, y)
-        print('loss_derivative, starting of backprop', back_err)
-        if self.verbose: print('in backprop layer %i\n' % self.L, '\tback_err shape', back_err.shape)
+        #first do last layer, then the rest
+        y_pred = self[-1].a
+        back_err = self.derivative_lossfunction(y_pred, y)
 
-        for l in reversed(list(range(1, self.L+1))):
-            if self.verbose: print('\nin backprop layer %i, using back_err_%i with shape %s\n' % (l, l+1, back_err.shape))
-            layer = self.layers[l]
-            a_prev = self.layers[l-1].a
+        # the rest of the network
+        for l in range(len(self)-1, 0, -1):
 
+            if self.verbose: print('\n' + 30*'*')
+            if self.verbose: print(f'in backprop layer {l=}, using {back_err.shape=}')
+
+            prev_layer = self[l-1]
+            layer = self[l]
+
+            prev_a = prev_layer.a
+            a = layer.a
+
+            if self.verbose: print('\nget_error')
             layer.get_error(back_err)
-            layer.grads(a_prev, N)
-            layer.update(self.lr)
+
+            if self.verbose: print('\nget_grads')
+            layer.get_grads(prev_a)
+
+            if self.verbose: print('\nupdate_weights')
+            layer.update_weights(self.lr)
+
             back_err = layer.backward()
             #print '\terror shape', layer.error.shape
 
@@ -120,7 +125,7 @@ class Network:
         if take_weights:
             grad_backprop = self.layers[check_layer].dw[check_k, check_j, check_c_prev, check_c]
 
-        #print('in gradcheck:', grad_manual, grad_backprop)
+        #if self.verbose: print('in gradcheck:', grad_manual, grad_backprop)
         if grad_manual == 0:
             if grad_backprop == 0:
                 ratio = 1
@@ -131,7 +136,7 @@ class Network:
             if abs(ratio-1) > 0.001:
                 if take_weights:
                     parameter = 'w[%i][%i,%i,%i,%i]' % (check_layer, check_k, check_j, check_c_prev, check_c)
-                print('ratio backprop/manual=%.5f. cause: %s' % (ratio, parameter))
+                if self.verbose: print('ratio backprop/manual=%.5f. cause: %s' % (ratio, parameter))
         return ratio, grad_manual, grad_backprop
 
 

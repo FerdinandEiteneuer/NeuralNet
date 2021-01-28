@@ -1,5 +1,15 @@
 import numpy as np
+from functools import wraps
+import sys
 
+def check_dims(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        ypred_dim = args[0].shape[1]
+        ytrue_dim = args[1].shape[1]
+        assert ypred_dim == ytrue_dim
+        return func(*args, **kwargs)
+    return wrapper
 '''
 input lossfunction:
     dim ypred=(output_dim, number trainingexamples)
@@ -12,11 +22,15 @@ input derivative_loss function:
     dim ypred=(
 '''
 
+@check_dims
 def _mse(ypred, ytrue, verbose=False):
-    assert(ypred.shape == ytrue.shape)
     N = ypred.shape[1]
     diff = ypred - ytrue
-    loss = np.sum(diff**2, axis=1, keepdims=True) / N
+    #print('in _mse', N, diff.shape)
+    loss = np.sum(diff**2) / N
+    if np.isnan(loss):
+        print('LOSS IS NAN', loss, diff, ypred)
+        sys.exit()
     return float(np.squeeze(loss))
 
 def _derivative_mse(ypred, ytrue):

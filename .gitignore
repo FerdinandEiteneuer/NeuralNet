@@ -5,6 +5,6 @@ data/*.npy
 #vim files
 *.sw*
 
-
+src/testomat.py
 ignored_pythonfiles/
 temp/
