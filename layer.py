@@ -1,8 +1,6 @@
 import abc
 
-class Layer:
-    __metaclass__ = abc.ABCMeta
-
+class Layer(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def feed_forward(w, a, b):
         return

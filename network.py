@@ -12,7 +12,7 @@ class Network:
         '''print model information'''
         number_params = 0
         params = ['w','b','beta','gamma']
-        for l, layer in self.layers.items():
+        for l, layer in list(self.layers.items()):
             for param in params:
                 if hasattr(layer,param):
                     N = np.multiply.accumulate(getattr(layer,param).shape)[-1]
@@ -21,7 +21,7 @@ class Network:
         s = 'model information:\n'
         s += '  layers: %i\n' % self.L - 1 
         s += '  number of parameters: %i' % number_params
-        print s
+        print(s)
 
     def add(self, layer):
         l = len(self.layers) + 1
@@ -47,7 +47,7 @@ class Network:
         self.derivative_lossfunction = loss['derivative']
  
     def set_attributes(self, params, l):
-        for parameter_name, parameter in params.items():
+        for parameter_name, parameter in list(params.items()):
             if not hasattr(self, parameter_name):
                 setattr(self, parameter_name, {})
             
@@ -55,9 +55,9 @@ class Network:
             getattr(self, parameter_name)[l] = parameter 
 
     def forward_step(self, a):
-        for l, layer in self.layers.items()[1:]:
+        for l, layer in list(self.layers.items())[1:]:
             a = layer.forward(a)
-            if self.verbose: print 'layer %s' % l, 'activation shape', a.shape
+            if self.verbose: print('layer %s' % l, 'activation shape', a.shape)
         return a
     
     def train_step(self, train_minibatch):
@@ -71,11 +71,11 @@ class Network:
 
         #backprop. first do last layer, then the rest
         back_err = self.derivative_lossfunction(a, y)
-        print 'loss_derivative, starting of backprop', back_err
-        if self.verbose: print 'in backprop layer %i\n' % self.L, '\tback_err shape', back_err.shape
+        print('loss_derivative, starting of backprop', back_err)
+        if self.verbose: print('in backprop layer %i\n' % self.L, '\tback_err shape', back_err.shape)
 
-        for l in reversed(range(1, self.L+1)):
-            if self.verbose: print '\nin backprop layer %i, using back_err_%i with shape %s\n' % (l, l+1, back_err.shape)
+        for l in reversed(list(range(1, self.L+1))):
+            if self.verbose: print('\nin backprop layer %i, using back_err_%i with shape %s\n' % (l, l+1, back_err.shape))
             layer = self.layers[l]
             a_prev = self.layers[l-1].a
 
@@ -106,7 +106,7 @@ class Network:
         for multiplier in [+1, -1]:
             tinychange = multiplier * eps
             a = x
-            for l, layer in self.layers.items()[1:]:
+            for l, layer in list(self.layers.items())[1:]:
                 if l == check_layer:
                     a = layer.forward(a, gradient_check=True, grad_check_info = grad_check_info + (tinychange,))
                 else:
@@ -131,7 +131,7 @@ class Network:
             if abs(ratio-1) > 0.001:
                 if take_weights:
                     parameter = 'w[%i][%i,%i,%i,%i]' % (check_layer, check_k, check_j, check_c_prev, check_c)
-                print 'ratio backprop/manual=%.5f. cause: %s' % (ratio, parameter)
+                print('ratio backprop/manual=%.5f. cause: %s' % (ratio, parameter))
         return ratio, grad_manual, grad_backprop
         
 

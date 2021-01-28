@@ -61,14 +61,14 @@ for epoch in range(1, epochs):
         model.train_step(minibatch)
         xmini, ymini = minibatch
         loss = model.get_loss(xmini, ymini)
-        print 'epoch',epoch, 'minibatch',m, 'loss',loss[0,0]
+        print('epoch',epoch, 'minibatch',m, 'loss',loss[0,0])
         ratio, grad_manual, grad_backprop = model.gradient_check(xmini, ymini, 1, (0,0,0,0))
-        print 'gradient checking:', ratio, 'manual calculation', grad_manual, 'backprop', grad_backprop
+        print('gradient checking:', ratio, 'manual calculation', grad_manual, 'backprop', grad_backprop)
         sys.exit()
 pred = model.predict(xtrain) 
-print pred
-print ytrain
+print(pred)
+print(ytrain)
 
 ratio, meanerr = loss_functions.mae(pred, ytrain)
-print 'mae', meanerr
-print 'ratios', ratio
+print('mae', meanerr)
+print('ratios', ratio)

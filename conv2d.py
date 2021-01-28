@@ -116,33 +116,33 @@ class Conv2D:
         self.backerr = np.zeros((height, width, channels, n))
          
         mins, maxs = self.lower_upper_summation_indices(height, self.f, self.s)
-        if verbose: print '\tbackward: using the following summations\n\t\tmins', mins, '\n\t\tmaxs', maxs, '\n\t\terror shape used:', self.error.shape, 'backerr shape', self.backerr.shape
+        if verbose: print('\tbackward: using the following summations\n\t\tmins', mins, '\n\t\tmaxs', maxs, '\n\t\terror shape used:', self.error.shape, 'backerr shape', self.backerr.shape)
         for h in range(height):
             for w in range(width):
                 low = np.arange(mins[h], maxs[h])
                 up = np.arange(mins[w], maxs[w])
-                if verbose: print '\t\th=%i w=%i' % (h, w), 'low', low, 'up', up
-                if verbose: print 'error part'
-                if verbose: print self.error.shape
+                if verbose: print('\t\th=%i w=%i' % (h, w), 'low', low, 'up', up)
+                if verbose: print('error part')
+                if verbose: print(self.error.shape)
                 error_part = self.error[np.ix_(low,up)]#self.error[low,up,:,:]
-                if verbose: print error_part.shape
+                if verbose: print(error_part.shape)
                 error_part = error_part[:,:,np.newaxis,:,:]
-                if verbose: print error_part.shape
+                if verbose: print(error_part.shape)
 
                 axis1 = h - self.s * low
                 axis2 = w - self.s * up
-                if verbose: print 'W part'
-                if verbose: print self.w.shape
+                if verbose: print('W part')
+                if verbose: print(self.w.shape)
                 W_part = self.w[np.ix_(axis1, axis2)]
-                if verbose: print W_part.shape
+                if verbose: print(W_part.shape)
                 W_part = W_part[...,np.newaxis]
-                if verbose: print W_part.shape
+                if verbose: print(W_part.shape)
                 
-                if verbose: print 'error_part', error_part.shape,'*', 'W_part', W_part.shape
+                if verbose: print('error_part', error_part.shape,'*', 'W_part', W_part.shape)
                 back_part = np.sum(error_part * W_part, axis=(0,1,3))
-                if verbose: print 'back_part = error_part*W_part shape ',back_part.shape
+                if verbose: print('back_part = error_part*W_part shape ',back_part.shape)
                 self.backerr[h,w,:,:] = back_part
-        if verbose: print '\tcalculated back_err_%s for next shallow layer. shape:' % (self.l),  self.backerr.shape
+        if verbose: print('\tcalculated back_err_%s for next shallow layer. shape:' % (self.l),  self.backerr.shape)
         return self.backerr 
         
     def backward2(self, verbose=False):
@@ -157,7 +157,7 @@ class Conv2D:
             for w in range(width):
                 I = np.arange(I_max)
                 J = np.arange(J_max)
-                if verbose: print 'h:%i, w:%s' % ( h,w)
+                if verbose: print('h:%i, w:%s' % ( h,w))
                 idx_I = h - self.s * I
                 mask_I = idx_I > 0
 
@@ -168,21 +168,21 @@ class Conv2D:
                 idx_I = idx_I[mask_I]
                 idx_J = idx_J[mask_J]
                 error_part = self.error[np.ix_(I[mask_I], J[mask_J])]
-                if verbose: print error_part.shape
+                if verbose: print(error_part.shape)
                 error_part = error_part[:,:,np.newaxis,:,:]
-                if verbose: print error_part.shape
+                if verbose: print(error_part.shape)
 
-                if verbose: print self.w.shape, idx_I, idx_J
+                if verbose: print(self.w.shape, idx_I, idx_J)
                 W_part = self.w[np.ix_(idx_I, idx_J)]
-                if verbose: print W_part.shape
+                if verbose: print(W_part.shape)
                 W_part = W_part[...,np.newaxis]
-                if verbose: print W_part.shape
+                if verbose: print(W_part.shape)
                 
-                if verbose: print 'error_part', error_part.shape,'*', 'W_part', W_part.shape
+                if verbose: print('error_part', error_part.shape,'*', 'W_part', W_part.shape)
                 back_part = np.sum(error_part * W_part, axis=(0,1,3))
-                if verbose: print 'back_part = error_part*W_part shape ',back_part.shape
+                if verbose: print('back_part = error_part*W_part shape ',back_part.shape)
                 self.backerr[h,w,:,:] = back_part
-        if verbose: print '\tcalculated back_err_%s for next shallow layer. shape:' % (self.l),  self.backerr.shape
+        if verbose: print('\tcalculated back_err_%s for next shallow layer. shape:' % (self.l),  self.backerr.shape)
         return self.backerr 
         
 
