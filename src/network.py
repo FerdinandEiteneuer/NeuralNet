@@ -50,8 +50,8 @@ class Network(list):
                 pass
 
         self.lr = lr
-        self.loss_fct = loss
-        self.derivative_loss_fct = partial(self.loss_fct, derivative=True)
+        self.loss_fct = loss().function
+        self.derivative_loss_fct = loss().derivative
 
         if self[-1].g is softmax:
             self.softmax = True
