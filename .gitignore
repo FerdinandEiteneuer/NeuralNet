@@ -6,5 +6,8 @@ data/*.npy
 *.sw*
 
 src/testomat.py
+src/try.py
+src/network_test.py
+
 ignored_pythonfiles/
 temp/
