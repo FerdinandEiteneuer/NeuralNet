@@ -11,3 +11,7 @@ src/network_test.py
 
 ignored_pythonfiles/
 temp/
+build/
+dist/
+
+NumpyNeuralNet*
