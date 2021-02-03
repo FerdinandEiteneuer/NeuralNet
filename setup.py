@@ -19,11 +19,13 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/FerdinandEiteneuer/NeuralNet",
     packages=setuptools.find_packages(),
+    include_package_data=True,
+    package_data={'': ['data/mnist.npz', 'mnist.nzp']},
     install_requires=required,
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
         "Operating System :: Linux",
     ],
-    python_requires='>=3.6',
+    python_requires='>=3.8',
 )

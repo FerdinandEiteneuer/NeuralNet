@@ -5,9 +5,9 @@ data/*.npy
 #vim files
 *.sw*
 
-src/testomat.py
-src/try.py
-src/network_test.py
+testomat.py
+try.py
+network_test.py
 
 ignored_pythonfiles/
 temp/
