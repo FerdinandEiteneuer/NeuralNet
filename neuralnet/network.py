@@ -8,23 +8,43 @@ from .layer import Layer
 from .activations import softmax
 from . import misc
 
-class Network(list):
+__all__ = ['Sequential']
+
+class BaseNetwork():
 
     def __init__(self, verbose=True):
-
-        self.layers = {}
+        self._layers = [Layer()]
         self.epoch = 0
         self.verbose=verbose
 
-        self.append(Layer())  # starting layer, for holding input values to the network
-        self.softmax = None  # True if last act fct is softmax
+    def __call__(self, a):
+        return self.forward_step(a)
+
+    def __len__(self):
+        return len(self._layers) - 1
+
+    def __getitem__(self, layerid):
+        return self._layers[layerid]
+
+    def __iter__(self):
+        for layer in self._layers[1:]:
+            yield layer
+
+    def add(self, layer):
+        self._layers.append(layer)
+
+    def predict(self, x):
+        return self(x)
+
+
+class Sequential(BaseNetwork):
 
     def __str__(self):
         s = 17*'*' + '\nmodel information:\n'
 
         number_params = 0
         params = ['w','b','beta','gamma']
-        for layer in self[1:]:
+        for layer in self:
             s += str(layer) + '\n'
             for param in params:
                 if hasattr(layer,param):
@@ -37,26 +57,71 @@ class Network(list):
 
         return s
 
-    def __call__(self, a):
-        return self.forward_step(a)
-
-    def add(self, layer):
-        self.append(layer)
-
     def compile(self, loss, optimizer):
-        self.batch_norm = False
-        for l in self.layers:
-            try:
-                if l.info == 'batch':
-                    self.batch_norm = True
-            except AttributeError:
-                pass
 
         self.loss_fct = loss().function
         self.derivative_loss_fct = loss().derivative
 
         self.optimizer = optimizer
         self.optimizer.prepare(network=self)
+
+    def forward_step(self, a):
+        self[0].a = a
+        for layer in self:
+            a = layer(a)
+        return a
+
+    def train_on_batch(self, x, y):
+        self.forward_step(x)
+        self.backpropagation(x, y)
+
+
+    def backpropagation(self, x, y, verbose=True):
+
+        error_prev = self._backprop_last_layer(x, y)
+
+        for l in range(len(self)-1, 0, -1):
+
+            a_next = self[l - 1].a
+            w_prev = self[l + 1].w
+
+            error_prev = self[l].backward_step(a_next, w_prev, error_prev)
+
+
+    def _backprop_last_layer(self, x, y):
+        '''
+        calculates the error for the last layer.
+        It is a little bit special as it involves
+        the cost function, so do it in its own function.
+        '''
+
+        derivative_loss = self.derivative_loss_fct(
+            ypred=self[-1].a,
+            ytrue=y,
+            average_examples=False
+        )
+
+        derivative_layer = self[-1].g(
+            z=self[-1].z,
+            derivative=True
+        )
+
+        if self[-1].g is softmax:
+            deltaL = np.einsum('in,jin->jn', derivative_loss, derivative_layer)
+        else:
+            deltaL = derivative_layer * derivative_loss
+
+        batch_size = x.shape[-1]
+        self[-1].dw = 1 / batch_size * np.dot(deltaL, self[-2].a.T)
+        self[-1].db = 1 / batch_size * np.sum(deltaL, axis=1, keepdims=True)
+        return deltaL
+
+
+    def get_loss(self, x, ytrue, average_examples=True):
+        ypred = self(x)
+        loss = self.loss_fct(ypred, ytrue, average_examples=average_examples)
+        return loss
+
 
     def fit(self, x, y, epochs=1, batch_size=128, validation_data=None, gradients_to_check_each_epoch=None, verbose=True):
 
@@ -112,72 +177,9 @@ class Network(list):
             self.epoch += 1
 
 
-    def forward_step(self, a):
-        if self.verbose: print('START FORWARD STEP')
-        self[0].a = a
-        for layer in self:
-            a = layer(a)
-        return a
-
-    def train_on_batch(self, x, y):
-        self.forward_step(x)
-        self.backpropagation(x, y)
-
-
-    def backpropagation(self, x, y, verbose=True):
-
-        error_prev = self._backprop_last_layer(x, y)
-
-        for l in range(len(self)-2, 0, -1):
-
-            a_next = self[l - 1].a
-            w_prev = self[l + 1].w
-
-            error_prev = self[l].backward_step(a_next, w_prev, error_prev)
-
-
-    def _backprop_last_layer(self, x, y):
-        '''
-        calculates the error for the last layer.
-        It is a little bit special as it involves
-        the cost function, so do it in its own function.
-        '''
-
-        derivative_loss = self.derivative_loss_fct(
-            ypred=self[-1].a,
-            ytrue=y,
-            average_examples=False
-        )
-
-        derivative_layer = self[-1].g(
-            z=self[-1].z,
-            derivative=True
-        )
-
-        if self[-1].g is softmax:
-            deltaL = np.einsum('in,jin->jn', derivative_loss, derivative_layer)
-        else:
-            deltaL = derivative_layer * derivative_loss
-
-        batch_size = x.shape[-1]
-        self[-1].dw = 1 / batch_size * np.dot(deltaL, self[-2].a.T)
-        self[-1].db = 1 / batch_size * np.sum(deltaL, axis=1, keepdims=True)
-        return deltaL
-
-
-    def get_loss(self, x, ytrue, average_examples=True):
-        ypred = self(x)
-        loss = self.loss_fct(ypred, ytrue, average_examples=average_examples)
-        return loss
-
-
-    def predict(self, x):
-        return self(x)
-
-
     def complete_gradient_check(self, x, y, eps=10**(-6)):
         self.grads_ = []
-        for layer in self[1:]:
+        for layer in self:
 
             gradient_manual = np.zeros(layer.w.shape)
 

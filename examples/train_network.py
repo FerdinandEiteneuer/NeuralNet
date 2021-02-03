@@ -6,7 +6,7 @@ import numpy as np
 import sys
 import os
 
-from neuralnet.network import Network
+from neuralnet.network import Sequential
 from neuralnet.dense import Dense
 from neuralnet.activations import relu, sigmoid, linear, tanh, softmax, lrelu
 from neuralnet.loss_functions import mse, crossentropy
@@ -34,16 +34,15 @@ if __name__ == '__main__':
 
     kernel_init= 'normal'
     depth = 200
-    momentum = 0.9
 
-    model = Network(verbose=False)
+    model = Sequential()
 
     model.add(Dense(input_dim, depth, relu, kernel_init))
     model.add(Dense(depth, depth, relu, kernel_init))
     model.add(Dense(depth, output_dim, softmax, kernel_init))
 
 
-    opt = SGD(learning_rate=10**(-1), bias_correction=True, momentum=momentum)
+    opt = SGD(learning_rate=10**(-1), bias_correction=True, momentum=0.9)
     model.compile(loss = crossentropy, optimizer=opt)
 
     print(model)

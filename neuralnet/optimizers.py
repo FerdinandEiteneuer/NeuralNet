@@ -17,10 +17,7 @@ class SGD:
         self.decay = 0.04
 
     def __str__(self):
-        s = f'''Optimizer: SGD
-         lr: {self.lr}
-         momentum: {self.beta_1}
-         bias correction: {self.bias_correction}'''
+        s = f'Optimizer: SGD(lr={self.lr}, momentum={self.beta_1}, bias_correction={self.bias_correction})'
         return s
 
     def prepare(self, network):
@@ -33,7 +30,7 @@ class SGD:
         self.mom_w = {}
         self.mom_b = {}
 
-        for layer in self.network[1:]:
+        for layer in self.network:
 
             self.mom_w[layer.layer_id] = np.zeros(layer.w.shape)
             self.mom_b[layer.layer_id] = np.zeros(layer.b.shape)
@@ -42,21 +39,12 @@ class SGD:
 
         b1 = self.beta_1  # readability
 
-        for layer in self.network[1:]:
+        for layer in self.network:
 
             l = layer.layer_id
 
-            if np.isnan(np.sum(layer.dw)):
-                print(layer.dw)
-                sys.exit()
-
             self.mom_w[l] = b1 * self.mom_w[l] + (1 - b1) * layer.dw
             self.mom_b[l] = b1 * self.mom_b[l] + (1 - b1) * layer.db
-
-            #print(self.mom_w[l][:,120:124][:4], np.any(self.mom_w[l] == np.nan))
-
-            assert self.mom_w[l].shape == self.network[l].w.shape
-            assert self.mom_b[l].shape == self.network[l].b.shape
 
             if self.bias_correction:
                 correction = 1 - b1 ** (1 + self.updates)
