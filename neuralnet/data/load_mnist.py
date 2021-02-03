@@ -20,7 +20,7 @@ def load():
 
     datadir = os.path.dirname(__file__)
     path = os.path.join(datadir, 'mnist.npz')
-    print(f'{path=}  --- file')
+    print(f'Loading data from {path=}')
 
     with np.load(path) as data:
         # load from disk
@@ -41,10 +41,6 @@ def load():
 
         x_train /= 255.0
         x_test /= 255.0
-
-        #xtrain, xtest, ytrain, ytest
-
-        print(f'{y_train.shape=}')
 
         return x_train, x_test, y_train, y_test
 

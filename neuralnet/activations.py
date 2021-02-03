@@ -1,6 +1,6 @@
 import numpy as np
 from functools import wraps
-
+#blablabla
 
 def sigmoid(z, derivative=False):
     sigma = 1/(1+np.exp(-z))
