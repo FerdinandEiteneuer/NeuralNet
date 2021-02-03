@@ -24,14 +24,17 @@ class Network(list):
 
         number_params = 0
         params = ['w','b','beta','gamma']
-        for layer in self:
+        for layer in self[1:]:
             s += str(layer) + '\n'
             for param in params:
                 if hasattr(layer,param):
                     N = np.multiply.accumulate(getattr(layer,param).shape)[-1]
                     number_params += N
 
-        s += '  number of parameters: %i' % number_params
+        s += f'total number of parameters: {number_params}\n'
+        if hasattr(self, 'optimizer'):
+            s += str(self.optimizer)
+
         return s
 
     def __call__(self, a):
@@ -40,7 +43,7 @@ class Network(list):
     def add(self, layer):
         self.append(layer)
 
-    def compile(self, loss, lr, optimizer=None):
+    def compile(self, loss, optimizer):
         self.batch_norm = False
         for l in self.layers:
             try:
@@ -49,12 +52,11 @@ class Network(list):
             except AttributeError:
                 pass
 
-        self.lr = lr
         self.loss_fct = loss().function
         self.derivative_loss_fct = loss().derivative
 
-        if self[-1].g is softmax:
-            self.softmax = True
+        self.optimizer = optimizer
+        self.optimizer.prepare(network=self)
 
     def fit(self, x, y, epochs=1, batch_size=128, validation_data=None, gradients_to_check_each_epoch=None, verbose=True):
 
@@ -72,12 +74,12 @@ class Network(list):
         if not gradients_to_check_each_epoch:
             grad_printout = ''
 
-        for epoch in range(1, epochs):
+        for epoch in range(1, epochs + 1):
 
             losses = []
-            self.lr *= 0.993
+            self.optimizer.lr *= 0.993
 
-            minibatches = misc.minibatches(x, y, batch_size=1000)
+            minibatches = misc.minibatches(x, y, batch_size=batch_size)
             for m, minibatch in enumerate(minibatches):
 
                 self.train_on_batch(*minibatch)
@@ -89,7 +91,7 @@ class Network(list):
                     goodness = self.gradient_checks(*minibatch, eps=10**(-6), checks=3)
                     grad_printout = f'gradcheck: {goodness:.3e}'
 
-                self.update_weights()
+                self.optimizer.update_weights()
 
 
             a_train = self(x)
@@ -161,12 +163,6 @@ class Network(list):
         self[-1].dw = 1 / batch_size * np.dot(deltaL, self[-2].a.T)
         self[-1].db = 1 / batch_size * np.sum(deltaL, axis=1, keepdims=True)
         return deltaL
-
-
-    def update_weights(self):
-        for layer in self[1:]:
-            layer.w -= self.lr * layer.dw
-            layer.b -= self.lr * layer.db
 
 
     def get_loss(self, x, ytrue, average_examples=True):

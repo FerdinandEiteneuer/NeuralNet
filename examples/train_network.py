@@ -5,19 +5,18 @@ Trains a neural network with mnist data
 import numpy as np
 import sys
 import os
-#np.warnings.filterwarnings('ignore')
 
-import numpy_neural_net as nnn
+from neuralnet.network import Network
+from neuralnet.dense import Dense
+from neuralnet.activations import relu, sigmoid, linear, tanh, softmax, lrelu
+from neuralnet.loss_functions import mse, crossentropy
+from neuralnet.optimizers import SGD
 
-from numpy_neural_net.network import Network
-from numpy_neural_net.dense import Dense
-from numpy_neural_net.activations import relu, sigmoid, linear, tanh, softmax, lrelu
-from numpy_neural_net.loss_functions import mse, crossentropy
-from numpy_neural_net.data import load_mnist
-
+from neuralnet.data import load_mnist
 
 if __name__ == '__main__':
 
+    #np.random.seed(123)  # reproducibility
     ########
     # DATA #
     ########
@@ -35,6 +34,7 @@ if __name__ == '__main__':
 
     kernel_init= 'normal'
     depth = 200
+    momentum = 0.9
 
     model = Network(verbose=False)
 
@@ -42,15 +42,19 @@ if __name__ == '__main__':
     model.add(Dense(depth, depth, relu, kernel_init))
     model.add(Dense(depth, output_dim, softmax, kernel_init))
 
-    model.compile(loss = crossentropy, lr = 1*10**(-1))
 
+    opt = SGD(learning_rate=10**(-1), bias_correction=True, momentum=momentum)
+    model.compile(loss = crossentropy, optimizer=opt)
+
+    print(model)
     loss = model.get_loss(xtrain, ytrain, average_examples=True)
+    print(f'Sanity check: Initial{loss=:.5f}')
 
     model.fit(
         x=xtrain,
         y=ytrain,
-        epochs=500,
-        batch_size=1000,
+        epochs=12,
+        batch_size=32,
         validation_data=(xtest, ytest),
         gradients_to_check_each_epoch=5,
         verbose=True

@@ -1,47 +1,76 @@
+'''
+Optimizers for gradient descent
+'''
+
 import numpy as np
+
 class SGD:
-    def __init__(self, learning_rate=0.01, beta_1=None, model=None):
+    '''
+    Stochastic Gradient Descent
+    '''
+    def __init__(self, learning_rate=0.01, momentum=0, bias_correction=True):
+
         self.lr = learning_rate
-        self.classical_momentum = False
-        #classical momentum
-        if beta_1 != None:
-            self.classical_momentum = True
-            self.model = model
-            self.initialize_momentum(beta_1)
+        self.beta_1 = momentum
+        self.bias_correction = bias_correction
 
-
-    def update(self, fc, epoch):
-        #update for each layer
-        if self.classical_momentum:
-            for l in fc.layers:
-                #for each w and b, first update momentum vector and then w, b
-                self.mom_w[l] = self.beta_1 * self.mom_w[l] + (1 - self.beta_1) * fc.dw[l]
-                #self.mom_w[l] /= (1 - self.beta_1 ** (epoch+1)) #bias correction
-                fc.w[l] -= self.lr * self.mom_w[l]
-
-                self.mom_b[l] = self.beta_1 * self.mom_b[l] + (1 - self.beta_1) * fc.db[l]
-                #self.mom_b[l] /= (1 - self.beta_1 ** (epoch+1)) #bias correction
-                fc.b[l] -= self.lr * self.mom_b[l]
-        else:
-            for l in fc.layers:
-                fc.w[l] -= self.lr * fc.dw[l]
-                fc.b[l] -= self.lr * fc.db[l]
-
-    def initialize_momentum(self, beta_1):
-        self.beta_1 = beta_1
         self.decay = 0.04
-        #momenta for w and bias
+
+    def __str__(self):
+        s = f'''Optimizer: SGD
+         lr: {self.lr}
+         momentum: {self.beta_1}
+         bias correction: {self.bias_correction}'''
+        return s
+
+    def prepare(self, network):
+        '''
+        Initializes momentum terms.
+        '''
+        self.network = network
+        self.updates = 0
+
         self.mom_w = {}
         self.mom_b = {}
-        #they get initialized with zeros
-        for l in self.model.layers:
-            self.mom_w[l] = np.zeros(self.model.w[l].shape)
-            self.mom_b[l] = np.zeros(self.model.b[l].shape)
 
+        for layer in self.network[1:]:
+
+            self.mom_w[layer.layer_id] = np.zeros(layer.w.shape)
+            self.mom_b[layer.layer_id] = np.zeros(layer.b.shape)
+
+    def update_weights(self):
+
+        b1 = self.beta_1  # readability
+
+        for layer in self.network[1:]:
+
+            l = layer.layer_id
+
+            if np.isnan(np.sum(layer.dw)):
+                print(layer.dw)
+                sys.exit()
+
+            self.mom_w[l] = b1 * self.mom_w[l] + (1 - b1) * layer.dw
+            self.mom_b[l] = b1 * self.mom_b[l] + (1 - b1) * layer.db
+
+            #print(self.mom_w[l][:,120:124][:4], np.any(self.mom_w[l] == np.nan))
+
+            assert self.mom_w[l].shape == self.network[l].w.shape
+            assert self.mom_b[l].shape == self.network[l].b.shape
+
+            if self.bias_correction:
+                correction = 1 - b1 ** (1 + self.updates)
+            else:
+                correction = 1
+
+            layer.w -= self.lr * self.mom_w[l] / correction
+            layer.b -= self.lr * self.mom_b[l] / correction
+
+        self.updates += 1
 
 class Nadam:
     '''Nadam Optimizer. Combines nesterov, momentum, RMS prop step'''
-    def __init__(self, learning_rate=0.01, beta_1=0.9, beta_2=0.999, eps=10**(-8), model=None, bias_correction=True):
+    def __init__(self, learning_rate=0.01, beta_1=0.9, beta_2=0.999, eps=10**(-8), network=None, bias_correction=True):
         self.lr = learning_rate
         self.beta_1 = beta_1
         self.beta_2 = beta_2
@@ -56,12 +85,12 @@ class Nadam:
         self.rms_w = {}
         self.rms_b = {}
         #they get initialized with zeros
-        for l in model.layers:
-            self.mom_w[l] = np.zeros(model.w[l].shape)
-            self.mom_b[l] = np.zeros(model.b[l].shape)
+        for l in network.layers:
+            self.mom_w[l] = np.zeros(network.w[l].shape)
+            self.mom_b[l] = np.zeros(network.b[l].shape)
 
-            self.rms_w[l] = np.zeros(model.w[l].shape)
-            self.rms_b[l] = np.zeros(model.b[l].shape)
+            self.rms_w[l] = np.zeros(network.w[l].shape)
+            self.rms_b[l] = np.zeros(network.b[l].shape)
 
     def update(self, fc, epoch):
         for l in fc.layers:
