@@ -1,5 +1,5 @@
 '''
-Trains a neural network with mnist data
+Trains the neural numpy net with mnist data.
 '''
 
 import numpy as np
@@ -10,13 +10,13 @@ from neuralnet.network import Sequential
 from neuralnet.dense import Dense
 from neuralnet.activations import relu, sigmoid, linear, tanh, softmax, lrelu
 from neuralnet.loss_functions import mse, crossentropy
-from neuralnet.optimizers import SGD
+from neuralnet.optimizers import SGD, Nadam
 
 from neuralnet.data import load_mnist
 
 if __name__ == '__main__':
 
-    #np.random.seed(123)  # reproducibility
+    np.random.seed(123)  # reproducibility
     ########
     # DATA #
     ########
@@ -42,19 +42,21 @@ if __name__ == '__main__':
     model.add(Dense(depth, output_dim, softmax, kernel_init))
 
 
-    opt = SGD(learning_rate=10**(-1), bias_correction=True, momentum=0.9)
-    model.compile(loss = crossentropy, optimizer=opt)
+    #sgd = SGD(learning_rate=10**(-1), bias_correction=True, momentum=0.9)
+    nadam = Nadam(learning_rate=10**(-3), beta_1=0.9, beta_2=0.999, eps=10**(-8))
 
+    model.compile(loss = crossentropy, optimizer=nadam)
     print(model)
+
     loss = model.get_loss(xtrain, ytrain, average_examples=True)
     print(f'Sanity check: Initial{loss=:.5f}')
 
     model.fit(
         x=xtrain,
         y=ytrain,
-        epochs=12,
-        batch_size=32,
+        epochs=120,
+        batch_size=500,
         validation_data=(xtest, ytest),
-        gradients_to_check_each_epoch=5,
+        gradients_to_check_each_epoch=3,
         verbose=True
     )

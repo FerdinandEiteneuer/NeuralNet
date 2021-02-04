@@ -10,8 +10,9 @@ def split(x, y, split_portion=0.8):
     return xtrain, ytrain, xtest, ytest
 
 def minibatches(x, y, batch_size=32):
-    '''generates minibatches of given size
-        does not work on the fly, generates all at once'''
+    '''
+    Generates minibatches of given size.
+    '''
 
     assert x.shape[-1] == y.shape[-1], f'shapes dont match: {x.shape}, {y.shape}'
 

@@ -1,14 +1,19 @@
-import numpy as np
+'''
+Implementation of the numpynets
+'''
 
 from functools import partial
 import itertools
 import warnings
+
+import numpy as np
 
 from .layer import Layer
 from .activations import softmax
 from . import misc
 
 __all__ = ['Sequential']
+
 
 class BaseNetwork():
 
@@ -40,7 +45,8 @@ class BaseNetwork():
 class Sequential(BaseNetwork):
 
     def __str__(self):
-        s = 17*'*' + '\nmodel information:\n'
+
+        s = 18*'*' + '\nmodel information:\n'
 
         number_params = 0
         params = ['w','b','beta','gamma']
@@ -53,7 +59,7 @@ class Sequential(BaseNetwork):
 
         s += f'total number of parameters: {number_params}\n'
         if hasattr(self, 'optimizer'):
-            s += str(self.optimizer)
+            s += str(self.optimizer) + '\n'
 
         return s
 
@@ -62,8 +68,8 @@ class Sequential(BaseNetwork):
         self.loss_fct = loss().function
         self.derivative_loss_fct = loss().derivative
 
+        optimizer.prepare(self)
         self.optimizer = optimizer
-        self.optimizer.prepare(network=self)
 
     def forward_step(self, a):
         self[0].a = a
@@ -154,7 +160,10 @@ class Sequential(BaseNetwork):
                 # important: do gradient checking before weights are changed!
                 if gradients_to_check_each_epoch and m == 1:
                     goodness = self.gradient_checks(*minibatch, eps=10**(-6), checks=3)
-                    grad_printout = f'gradcheck: {goodness:.3e}'
+                    if goodness:
+                        grad_printout = f'gradcheck: {goodness:.3e}'
+                    else:
+                        grad_printout = 'gradcheck n/a, all grads are zero'
 
                 self.optimizer.update_weights()
 
@@ -231,7 +240,11 @@ class Sequential(BaseNetwork):
             grads_backprop[check] = self[layer_id].dw[weight_idx]
 
         n = np.linalg.norm
-        goodness = n(grads - grads_backprop)/(n(grads) + n(grads_backprop))
+        normed_sum = n(grads) + n(grads_backprop)
+        if normed_sum == 0:
+            goodness = None
+        else:
+            goodness = n(grads - grads_backprop) / normed_sum
 
         return goodness
 
