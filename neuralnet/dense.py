@@ -19,8 +19,7 @@ class Dense(Layer):
 
         self.verbose = verbose
         self.g = activation
-        self.kernel_regularizer = kernel_regularizer
-        self.bias_regularizer = bias_regularizer
+
         self.shape = output_dim, input_dim
 
         self.w = kernels[kernel_init](self.shape)
@@ -28,6 +27,10 @@ class Dense(Layer):
 
         self.dw = np.zeros(self.w.shape)
         self.db = np.zeros(self.b.shape)
+
+
+        self.kernel_regularizer = kernel_regularizer(self, 'w') if kernel_regularizer else None
+        self.bias_regularizer = bias_regularizer(self, 'b') if bias_regularizer else None
 
     def __str__(self):
         representation = f'layer {self.layer_id} (fully connected) '\
@@ -50,4 +53,20 @@ class Dense(Layer):
 
         self.dw = 1 / batch_size * np.dot(error, a_next.T)
         self.db = 1 / batch_size * np.sum(error, axis=1, keepdims=True)
+
+        if self.kernel_regularizer:
+            self.dw += self.kernel_regularizer.derivative()
+
+        if self.bias_regularizer:
+            self.db += self.bias_regularizer.derivative()
+
         return error
+
+    def loss_from_regularizers(self):
+
+        loss = 0
+        if self.kernel_regularizer:
+            loss += self.kernel_regularizer.loss()
+        if self.bias_regularizer:
+            loss += self.bias_regularizer.loss()
+        return loss

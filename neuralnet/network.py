@@ -71,11 +71,13 @@ class Sequential(BaseNetwork):
         optimizer.prepare(self)
         self.optimizer = optimizer
 
+
     def forward_step(self, a):
         self[0].a = a  # layer #0 is just there for saving the training data. it gets accessed in the last iteration in the loop in backpropagation during a_next = self[l - 1].a
         for layer in self:
             a = layer(a)
         return a
+
 
     def train_on_batch(self, x, y):
         self.forward_step(x)
@@ -123,10 +125,17 @@ class Sequential(BaseNetwork):
         return deltaL
 
 
-    def get_loss(self, x, ytrue, average_examples=True):
+    def get_loss(self, x, ytrue, average_examples=True, verbose=False):
+
         ypred = self(x)
         loss = self.loss_fct(ypred, ytrue, average_examples=average_examples)
-        return loss
+
+        regularizer_loss = sum(layer.loss_from_regularizers() for layer in self)
+
+        if verbose:
+            print(f'{loss=:.4f}, {regularizer_loss=:.4f}')
+
+        return loss + regularizer_loss
 
 
     def fit(self, x, y, epochs=1, batch_size=128, validation_data=None, gradients_to_check_each_epoch=None, verbose=True):
@@ -179,7 +188,7 @@ class Sequential(BaseNetwork):
                 test_correct = np.sum(ytest_pred == ytest_labels)
                 val_loss = self.get_loss(xtest, ytest)
 
-                val_printout = f'{val_loss=:.3f}, test:{test_correct}/{Ntest}'
+                val_printout = f'{val_loss=:.3f}, test: {test_correct}/{Ntest}'
 
             print(f'{epoch=}, {loss=:.3f}, train: {train_correct}/{Ntrain}, {val_printout}, {grad_printout}')
 
