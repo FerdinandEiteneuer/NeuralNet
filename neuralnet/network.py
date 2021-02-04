@@ -72,7 +72,7 @@ class Sequential(BaseNetwork):
         self.optimizer = optimizer
 
     def forward_step(self, a):
-        self[0].a = a
+        self[0].a = a  # layer #0 is just there for saving the training data. it gets accessed in the last iteration in the loop in backpropagation during a_next = self[l - 1].a
         for layer in self:
             a = layer(a)
         return a
