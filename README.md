@@ -7,6 +7,7 @@ This is a little project for myself, to understand the inner workings of neural 
 
 * fully connected layer
 * commonly used activation functions and loss functions
+* SGD with momentum and Nadam optimizer
 * gradient checking
 * parts of the keras API are replicated
 
@@ -14,28 +15,32 @@ This is a little project for myself, to understand the inner workings of neural 
 
 ```python
 
-# ....
-# setupcode
+xtrain, xtest, ytrain, ytest = load_mnist.load()
+
+xtrain = np.resize(xtrain, (28**2, 60000))
+xtest = np.resize(xtest, (28**2, 10000))
 
 input_dim = xtrain.shape[0]
 output_dim = ytrain.shape[0]
 
 kernel_init= 'normal'
-depth = 200
 
-model = Network()
+model = Sequential()
 
-model.add(Dense(input_dim, depth, relu, kernel_init))
-model.add(Dense(depth, depth, relu, kernel_init))
-model.add(Dense(depth, output_dim, softmax, kernel_init))
+model.add(Dense(input_dim, 200, relu, kernel_init))
+model.add(Dense(200, 200, relu, kernel_init))
+model.add(Dense(200, output_dim, softmax, kernel_init))
 
-model.compile(loss = crossentropy, lr = 1*10**(-1))
+nadam = Nadam(learning_rate=10**(-3), beta_1=0.9, beta_2=0.999, eps=10**(-8))
+
+
+model.compile(loss = crossentropy, optimizer=nadam)
 
 model.fit(
     x=xtrain,
     y=ytrain,
-    epochs=500,
-    batch_size=1000,
+    epochs=50,
+    batch_size=256,
     validation_data=(xtest, ytest),
     gradients_to_check_each_epoch=5,
     verbose=True
