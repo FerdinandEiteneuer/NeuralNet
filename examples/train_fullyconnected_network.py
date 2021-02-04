@@ -11,6 +11,7 @@ from neuralnet.dense import Dense
 from neuralnet.activations import relu, sigmoid, linear, tanh, softmax, lrelu
 from neuralnet.loss_functions import mse, crossentropy
 from neuralnet.optimizers import SGD, Nadam
+from neuralnet.regularizers import L1, L2, L1_L2
 
 from neuralnet.data import load_mnist
 
@@ -27,13 +28,12 @@ if __name__ == '__main__':
     output_dim = ytrain.shape[0]
 
     kernel_init= 'normal'
-    depth = 400
+    depth = 100
 
     model = Sequential()
 
-    model.add(Dense(input_dim, depth, relu, kernel_init))
-    model.add(Dense(depth, depth, relu, kernel_init))
-    model.add(Dense(depth, depth, relu, kernel_init))
+    model.add(Dense(input_dim, depth, relu, kernel_init, kernel_regularizer=L2(1e-4)))
+    model.add(Dense(depth, depth, relu, kernel_init, bias_regularizer=L1_L2(1e-3, 1e-3)))
     model.add(Dense(depth, output_dim, softmax, kernel_init))
 
 
@@ -43,8 +43,9 @@ if __name__ == '__main__':
     model.compile(loss = crossentropy, optimizer=nadam)
     print(model)
 
-    loss = model.get_loss(xtrain, ytrain, average_examples=True)
-    print(f'Sanity check: intial {loss=:.5f}')
+    # initial sanity check. print out loss + regularization loss
+    model.get_loss(xtrain, ytrain, average_examples=True, verbose=True)
+
 
     model.fit(
         x=xtrain,
