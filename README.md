@@ -11,7 +11,7 @@ This is a little project for myself, to understand the inner workings of neural 
 * gradient checking
 * parts of the keras API are replicated
 
-## example of the API
+## usage
 
 ```python
 
@@ -27,7 +27,7 @@ kernel_init= 'normal'
 
 model = Sequential()
 
-model.add(Dense(input_dim, 200, relu, kernel_init))
+model.add(Dense(input_dim, 200, relu, kernel_init, kernel_regularizers=L2(1e-4))
 model.add(Dense(200, 200, relu, kernel_init))
 model.add(Dense(200, output_dim, softmax, kernel_init))
 
