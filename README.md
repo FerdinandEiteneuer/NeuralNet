@@ -7,6 +7,7 @@ This is a little project for myself, to understand the inner workings of neural 
 * fully connected layer
 * commonly used activation functions and loss functions
 * gradient checking
+* sgd with momentum and nadam optimizers
 * parts of the keras API are replicated
 
 ## example of the API
@@ -19,16 +20,17 @@ This is a little project for myself, to understand the inner workings of neural 
 input_dim = xtrain.shape[0]
 output_dim = ytrain.shape[0]
 
-kernel_init= 'normal'
+kernel_init = normal
 depth = 200
 
 model = Network()
 
-model.add(Dense(input_dim, depth, relu, kernel_init))
-model.add(Dense(depth, depth, relu, kernel_init))
+model.add(Dense(input_dim, depth, tanh, kernel_init, kernel_regularization=L2(1e-5)))
+model.add(Dense(depth, depth, tanh, kernel_init, kernel_regularization=L1_L2(1e-4, 1e-4))
 model.add(Dense(depth, output_dim, softmax, kernel_init))
 
-model.compile(loss = crossentropy, lr = 1*10**(-1))
+nadam = Nadam(lr=1e-4, beta_1=0.9, beta_2=0.999, eps=10**(-8))
+model.compile(loss=crossentropy, optimizer=nadam)
 
 model.fit(
     x=xtrain,
