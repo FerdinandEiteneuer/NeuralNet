@@ -38,7 +38,7 @@ class L1(Regularizer):
         return self.l1 * np.sum(np.abs(self.param))
 
     def derivative(self=None):
-        return self.l1
+        return self.l1 * np.sign(self.param)
 
 
 class L1_L2(L1, L2):

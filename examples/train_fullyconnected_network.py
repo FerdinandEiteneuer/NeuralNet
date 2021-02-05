@@ -12,6 +12,7 @@ from neuralnet.activations import relu, sigmoid, linear, tanh, softmax, lrelu
 from neuralnet.loss_functions import mse, crossentropy
 from neuralnet.optimizers import SGD, Nadam
 from neuralnet.regularizers import L1, L2, L1_L2
+from neuralnet.kernel_initializers import normal, glorot_uniform
 
 from neuralnet.data import load_mnist
 
@@ -27,13 +28,13 @@ if __name__ == '__main__':
     input_dim = xtrain.shape[0]
     output_dim = ytrain.shape[0]
 
-    kernel_init= 'normal'
+    kernel_init = normal
     depth = 100
 
     model = Sequential()
 
-    model.add(Dense(input_dim, depth, relu, kernel_init, kernel_regularizer=L2(1e-4)))
-    model.add(Dense(depth, depth, relu, kernel_init, bias_regularizer=L1_L2(1e-3, 1e-3)))
+    model.add(Dense(input_dim, depth, tanh, kernel_init, kernel_regularizer=L1_L2(1e-3, 1e-4)))
+    model.add(Dense(depth, depth, tanh, kernel_init, kernel_regularizer=L2(1e-6)))
     model.add(Dense(depth, output_dim, softmax, kernel_init))
 
 

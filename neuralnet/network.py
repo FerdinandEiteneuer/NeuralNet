@@ -103,25 +103,34 @@ class Sequential(BaseNetwork):
         the cost function, so do it in its own function.
         '''
 
+        layer = self[-1]
+
         derivative_loss = self.derivative_loss_fct(
-            ypred=self[-1].a,
+            ypred=layer.a,
             ytrue=y,
             average_examples=False
         )
 
-        derivative_layer = self[-1].g(
-            z=self[-1].z,
+        derivative_layer = layer.g(
+            z=layer.z,
             derivative=True
         )
 
-        if self[-1].g is softmax:
+        if layer.g is softmax:
             deltaL = np.einsum('in,jin->jn', derivative_loss, derivative_layer)
         else:
             deltaL = derivative_layer * derivative_loss
 
         batch_size = x.shape[-1]
-        self[-1].dw = 1 / batch_size * np.dot(deltaL, self[-2].a.T)
-        self[-1].db = 1 / batch_size * np.sum(deltaL, axis=1, keepdims=True)
+
+        layer.dw = 1 / batch_size * np.dot(deltaL, self[-2].a.T)
+        layer.db = 1 / batch_size * np.sum(deltaL, axis=1, keepdims=True)
+
+        if layer.kernel_regularizer:
+            layer.dw += 1 / batch_size * self.kernel_regularizer.derivative()
+        if layer.bias_regularizer:
+            layer.db += 1 / batch_size * self.bias_regularizer.derivative()
+
         return deltaL
 
 
@@ -130,10 +139,11 @@ class Sequential(BaseNetwork):
         ypred = self(x)
         loss = self.loss_fct(ypred, ytrue, average_examples=average_examples)
 
-        regularizer_loss = sum(layer.loss_from_regularizers() for layer in self)
+        batch_size = ytrue.shape[-1]
+        regularizer_loss = sum(layer.loss_from_regularizers(batch_size) for layer in self)
 
         if verbose:
-            print(f'{loss=:.4f}, {regularizer_loss=:.4f}')
+            print(f'{loss=:.4e}, {regularizer_loss=:.4e}')
 
         return loss + regularizer_loss
 
@@ -193,6 +203,7 @@ class Sequential(BaseNetwork):
             print(f'{epoch=}, {loss=:.3f}, train: {train_correct}/{Ntrain}, {val_printout}, {grad_printout}')
 
             self.epoch += 1
+        return losses
 
 
     def complete_gradient_check(self, x, y, eps=10**(-6)):
