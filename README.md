@@ -2,12 +2,6 @@
 
 This is a little project for myself, to understand the inner workings of neural networks.
 
-## installation
-
-```bash
-
-git clone 
-
 ## features
 
 * fully connected layer
@@ -50,5 +44,5 @@ model.fit(
 
 ## requirements
 
-* python 3.8
-* numpy
+ * python 3.8
+ * numpy
