@@ -2,7 +2,7 @@ import numpy as np
 from functools import wraps
 
 from .layer import Layer
-from .kernel_initializer import kernels
+from . import kernel_initializers
 
 class Dense(Layer):
     def __init__(
@@ -10,7 +10,7 @@ class Dense(Layer):
             input_dim,
             output_dim,
             activation,
-            kernel_init,
+            kernel_initializer=kernel_initializers.normal,
             kernel_regularizer=None,
             bias_regularizer=None,
             verbose=False):
@@ -20,23 +20,21 @@ class Dense(Layer):
         self.verbose = verbose
         self.g = activation
 
-        self.shape = output_dim, input_dim
-
-        self.w = kernels[kernel_init](self.shape)
-        self.b = np.zeros((output_dim, 1))
-
+        shape = output_dim, input_dim
+        self.w = kernel_initializers.create(kernel_initializer, shape)
         self.dw = np.zeros(self.w.shape)
-        self.db = np.zeros(self.b.shape)
 
+        self.b = np.zeros((output_dim, 1))
+        self.db = np.zeros(self.b.shape)
 
         self.kernel_regularizer = kernel_regularizer(self, 'w') if kernel_regularizer else None
         self.bias_regularizer = bias_regularizer(self, 'b') if bias_regularizer else None
 
     def __str__(self):
-        representation = f'layer {self.layer_id} (fully connected) '\
+        description = f'layer {self.layer_id} (fully connected) '\
                          f'w.shape={self.w.shape}, b.shape={self.b.shape}'
 
-        return representation
+        return description
 
     def forward(self, a):
 
