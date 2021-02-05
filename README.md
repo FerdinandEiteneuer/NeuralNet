@@ -7,7 +7,7 @@ This is a little project for myself, to understand the inner workings of neural 
 * fully connected layer
 * commonly used activation functions and loss functions
 * gradient checking
-* sgd with momentum and nadam optimizers
+* sgd with momentum and nadam optimizer
 * parts of the keras API are replicated
 
 ## example of the API
