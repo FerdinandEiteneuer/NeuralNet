@@ -25,8 +25,8 @@ depth = 200
 
 model = Network()
 
-model.add(Dense(input_dim, depth, tanh, kernel_init, kernel_regularization=L2(1e-5)))
-model.add(Dense(depth, depth, tanh, kernel_init, kernel_regularization=L1_L2(1e-4, 1e-4))
+model.add(Dense(input_dim, depth, tanh, kernel_init, kernel_regularizer=L2(1e-5)))
+model.add(Dense(depth, depth, tanh, kernel_init, kernel_regularizer=L1_L2(1e-4, 1e-4)))
 model.add(Dense(depth, output_dim, softmax, kernel_init))
 
 nadam = Nadam(lr=1e-4, beta_1=0.9, beta_2=0.999, eps=10**(-8))
