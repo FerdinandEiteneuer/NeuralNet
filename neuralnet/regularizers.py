@@ -13,7 +13,7 @@ class Regularizer:
         try:
             return getattr(self.layer, self.param_id)
         except AttributeError as e:
-            print(f'ERROR: regularizer could not access param {self.param_id} form layer {self.layer} with layer id {self.layer.layer_id}')
+            print(f'ERROR: regularizer {self.__class__.__name__} could not access param {self.param_id} from layer with layer id {self.layer.layer_id}')
             raise
 
 
@@ -57,11 +57,11 @@ if __name__ == '__main__':
 
     par = 123
 
-    l1 = L1(l1 = 0)(123)
+    class X: pass
 
-    l2 = L2(l2 = 0)
-    l2(456)
+    x=X()
+    x.w = 2
+    x.layer_id=1
 
-    l1_2 = L1_L2(l1 = 1, l2 = 2)(par)
+    l1_2 = L1_L2(l1 = 1, l2 = 2)(x, 'w')
 
-    print(l1_2.loss())
