@@ -10,7 +10,7 @@ try.py
 network_test_.py
 network_test.py
 
-ignored_pythonfiles/
+ignored_files/
 temp/
 build/
 dist/
