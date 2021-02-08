@@ -37,8 +37,8 @@ model.compile(loss=crossentropy, optimizer=nadam)
 model.fit(
     x=xtrain,
     y=ytrain,
-    epochs=500,
-    batch_size=1000,
+    epochs=6,
+    batch_size=500,
     validation_data=(xtest, ytest),
     gradients_to_check_each_epoch=5,
     verbose=True
@@ -48,25 +48,26 @@ model.fit(
 ### output
 
 ```
+______________________________________________________________
 Layer (type)                 Output Shape              Param #
 ==============================================================
-dense_1 (Dense)              (100, 784)                78500
-dense_2 (Dense)              (100, 100)                10100
-dense_3 (Dense)              (10, 100)                 1010
-Total params: 89610
-Trainable params: 89610
+dense_1 (Dense)              (200, 784)                157000
+dense_2 (Dense)              (200, 200)                40200
+dense_3 (Dense)              (10, 200)                 2010
+Total params: 199210
+Trainable params: 199210
 Non-trainable params: 0
 
-Optimizer: Nadam(lr=0.0007, beta_1=0.9, beta_2=0.999, eps=1e-08)
+Optimizer: Nadam(lr=0.001, beta_1=0.9, beta_2=0.999, eps=1e-08)
 
-calculating loss for initial sanity check: loss=2.3028e+00, regularizer_loss=1.4963e-07
-epoch=1, loss=1.232, train: 51253/60000, val_loss=0.536, test: 8579/10000, gradcheck: 1.378e-06
-epoch=2, loss=0.399, train: 54829/60000, val_loss=0.308, test: 9113/10000, gradcheck: 8.165e-08
-epoch=3, loss=0.271, train: 56163/60000, val_loss=0.234, test: 9326/10000, gradcheck: 2.900e-08
-epoch=4, loss=0.210, train: 56952/60000, val_loss=0.189, test: 9459/10000, gradcheck: 3.230e-08
-epoch=5, loss=0.170, train: 57504/60000, val_loss=0.160, test: 9549/10000, gradcheck: 9.404e-09
-epoch=6, loss=0.142, train: 57881/60000, val_loss=0.140, test: 9577/10000, gradcheck: 8.605e-09
-epoch=7, loss=0.121, train: 58205/60000, val_loss=0.126, test: 9626/10000, gradcheck: 4.520e-09
+calculating loss for initial sanity check: loss=2.3028e+00, regularizer_loss=5.9825e-07
+epoch=1, loss=0.723, train: 54990/60000, val_loss=0.286, test: 9143/10000, gradcheck: 7.049e-07
+epoch=2, loss=0.243, train: 56655/60000, val_loss=0.194, test: 9441/10000, gradcheck: 2.316e-08
+epoch=3, loss=0.171, train: 57554/60000, val_loss=0.150, test: 9536/10000, gradcheck: 4.718e-08
+epoch=4, loss=0.130, train: 58167/60000, val_loss=0.122, test: 9642/10000, gradcheck: 1.883e-08
+epoch=5, loss=0.103, train: 58512/60000, val_loss=0.107, test: 9674/10000, gradcheck: 1.590e-08
+epoch=6, loss=0.084, train: 58836/60000, val_loss=0.090, test: 9718/10000, gradcheck: 2.357e-09
+
 ```
 
 ## requirements
