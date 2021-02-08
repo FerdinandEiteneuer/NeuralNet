@@ -23,7 +23,10 @@ class SGD:
         self.network = None
 
 
-    def prepare(self, network):
+    def prepare_params(self, network):
+        '''
+        Initializes the momentum parameters.
+        '''
         self.network = network
 
         for layer in self.network:
@@ -31,6 +34,7 @@ class SGD:
             self.mom_w[layer.layer_id] = np.zeros(layer.w.shape)
             self.mom_b[layer.layer_id] = np.zeros(layer.b.shape)
 
+        return self
 
     def __str__(self):
         s = f'Optimizer: SGD(lr={self.lr}, momentum={self.beta_1}, bias_correction={self.bias_correction})'
@@ -81,7 +85,7 @@ class Nadam:
         self.rms_w = {}
         self.rms_b = {}
 
-    def prepare(self, network):
+    def prepare_params(self, network):
         '''
         Initializes the momentum parameters.
         '''
@@ -93,9 +97,10 @@ class Nadam:
             self.mom_w[l] = np.zeros(layer.w.shape)
             self.mom_b[l] = np.zeros(layer.b.shape)
 
-
             self.rms_w[l] = np.zeros(layer.w.shape)
             self.rms_b[l] = np.zeros(layer.b.shape)
+
+        return self
 
     def __str__(self):
         s = f'Optimizer: Nadam(lr={self.lr}, beta_1={self.beta_1}, beta_2={self.beta_2}, eps={self.eps})'

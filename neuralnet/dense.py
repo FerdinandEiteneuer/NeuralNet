@@ -7,9 +7,9 @@ from . import kernel_initializers
 class Dense(Layer):
     def __init__(
             self,
-            input_dim,
             output_dim,
             activation,
+            input_dim=None,
             kernel_initializer=kernel_initializers.normal,
             kernel_regularizer=None,
             bias_regularizer=None,
@@ -20,22 +20,26 @@ class Dense(Layer):
         self.verbose = verbose
         self.g = activation
 
-        shape = output_dim, input_dim
-        self.w = kernel_initializers.create(kernel_initializer, shape)
-        self.dw = np.zeros(self.w.shape)
+        self.output_dim = output_dim
+        self.input_dim = input_dim
 
-        self.b = np.zeros((output_dim, 1))
-        self.db = np.zeros(self.b.shape)
+        self.kernel_initializer = kernel_initializer
 
         self.kernel_regularizer = kernel_regularizer(self, 'w') if kernel_regularizer else None
         self.bias_regularizer = bias_regularizer(self, 'b') if bias_regularizer else None
 
 
-    def __str__(self):
-        description = f'layer {self.layer_id} (fully connected) '\
-                         f'w.shape={self.w.shape}, b.shape={self.b.shape}'
+    def prepare_params(self, input_dim=None):
+        if input_dim:
+            self.shape = self.output_dim, input_dim
+        else:
+            self.shape = self.output_dim, self.input_dim
 
-        return description
+        self.w = kernel_initializers.create(self.kernel_initializer, self.shape)
+        self.dw = np.zeros(self.w.shape)
+
+        self.b = np.zeros((self.output_dim, 1))
+        self.db = np.zeros(self.b.shape)
 
 
     def forward(self, a):

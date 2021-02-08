@@ -9,6 +9,8 @@ import warnings
 import numpy as np
 
 from .layer import Layer
+from .dense import Dense
+from .conv2d import Conv2D, Flatten
 from .activations import softmax
 from . import misc
 
@@ -38,28 +40,41 @@ class BaseNetwork():
     def add(self, layer):
         self._layers.append(layer)
 
+        if len(self._layers) >= 3:
+
+            prev_layer = self._layers[-2]
+            if isinstance(layer, Dense) and isinstance(prev_layer, Conv2D):
+                raise TypeError('need a \'Flatten\' Layer inbetween Conv2D layers and Dense Layers.')
+            if isinstance(layer, Conv2D) and isinstance(prev_layer, Conv2D):
+                layer.previous_filters = prev_layer.filters
+
+
     def predict(self, x):
         return self(x)
 
 
 class Sequential(BaseNetwork):
-
     def __str__(self):
 
-        s = 18*'*' + '\nmodel information:\n'
-
+        s  = '\n' + 62 * '_' + '\n'
+        s += 'Layer (type)                 Output Shape              Param #\n'
+        s += 62 * '=' + '\n'
         number_params = 0
         params = ['w','b','beta','gamma']
         for layer in self:
             s += str(layer) + '\n'
             for param in params:
-                if hasattr(layer,param):
-                    N = np.multiply.accumulate(getattr(layer,param).shape)[-1]
+                if hasattr(layer, param):
+                    par = getattr(layer, param)
+                    N = np.product(par.shape)
                     number_params += N
 
-        s += f'total number of parameters: {number_params}\n'
+        s += f'Total params: {number_params}\n' \
+            f'Trainable params: {number_params}\n' \
+            f'Non-trainable params: 0\n'
+
         if hasattr(self, 'optimizer'):
-            s += str(self.optimizer) + '\n'
+            s += '\n' + str(self.optimizer) + '\n'
 
         return s
 
@@ -68,8 +83,19 @@ class Sequential(BaseNetwork):
         self.loss_fct = loss().function
         self.derivative_loss_fct = loss().derivative
 
-        optimizer.prepare(self)
-        self.optimizer = optimizer
+        first_layer = self[1]
+        first_layer.prepare_params()
+        next_input_dim = first_layer.output_dim
+
+        if not next_input_dim:
+            raise ValueError('The first layer must have an input_dim.'
+                             'It can not be deduced by previous layers.')
+
+        for layer in self[2:]:
+            layer.prepare_params(next_input_dim)
+            next_input_dim = layer.output_dim
+
+        self.optimizer = optimizer.prepare_params(self)
 
 
     def forward_step(self, a):

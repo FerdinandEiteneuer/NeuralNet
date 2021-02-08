@@ -19,6 +19,7 @@ def create(initializer, shape):
     '''
     TODO: is this good programming style?
     '''
+
     if isinstance(initializer, str):
 
         if initializer in __all__:
