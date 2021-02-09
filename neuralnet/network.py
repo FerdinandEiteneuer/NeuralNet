@@ -19,45 +19,26 @@ __all__ = ['Sequential']
 
 class BaseNetwork():
 
-    def __init__(self, verbose=True):
-        self._layers = [Layer()]
+    def __init__(self, layers=None):
+
+        self._dense_layers = 0
+        self._conv_layers = 0
+        self._flatten_layers = 0
+
+        self._layers = [Layer(layer_id=0)]
+
+        if layers:
+            for layer in layers:
+                print('adding ', layer)
+                self.add(layer)
+
         self.epoch = 0
-        self.verbose=verbose
 
-    def __call__(self, a):
-        return self.forward_step(a)
-
-    def __len__(self):
-        return len(self._layers) - 1
-
-    def __getitem__(self, layerid):
-        return self._layers[layerid]
-
-    def __iter__(self):
-        for layer in self._layers[1:]:
-            yield layer
-
-    def add(self, layer):
-        self._layers.append(layer)
-
-        if len(self._layers) >= 3:
-
-            prev_layer = self._layers[-2]
-            if isinstance(layer, Dense) and isinstance(prev_layer, Conv2D):
-                raise TypeError('need a \'Flatten\' Layer inbetween Conv2D layers and Dense Layers.')
-            if isinstance(layer, Conv2D) and isinstance(prev_layer, Conv2D):
-                layer.previous_filters = prev_layer.filters
-
-
-    def predict(self, x):
-        return self(x)
-
-
-class Sequential(BaseNetwork):
     def __str__(self):
 
         s  = '\n' + 62 * '_' + '\n'
-        s += 'Layer (type)                 Output Shape              Param #\n'
+        #s += 'Layer (type)                 Output Shape              Param #\n'
+        s += 'Layer (type)                   Weight Shape            Param #\n'
         s += 62 * '=' + '\n'
         number_params = 0
         params = ['w','b','beta','gamma']
@@ -77,6 +58,60 @@ class Sequential(BaseNetwork):
             s += '\n' + str(self.optimizer) + '\n'
 
         return s
+
+    def __call__(self, a):
+        return self.forward_step(a)
+
+    def __len__(self):
+        return len(self._layers) - 1
+
+    def __getitem__(self, layerid):
+        return self._layers[layerid]
+
+    def __iter__(self):
+        for layer in self._layers[1:]:
+            yield layer
+
+    def add(self, layer):
+
+        self._layers.append(layer)
+
+        # setting layer id, which is the index of the layer in model, e.g model[2]
+        # returns the layer with layer_id 2
+        layer.layer_id = len(self._layers) - 1
+
+        # setting class layer ids (used ONLY in __str__)
+        if isinstance(layer, Dense):
+            layer.class_layer_id = self._dense_layers
+            self._dense_layers += 1
+
+        elif isinstance(layer, Conv2D):
+            print('HI•')
+            layer.class_layer_id = self._conv_layers
+            self._conv_layers += 1
+
+        elif isintance(layer, Flatten):
+            layer._class_layer_id = self._flatten_layers
+            self._flatten_layers += 1
+
+        else:
+            raise TypeError(f'Do not know how to handle {layer=}')
+
+        if len(self._layers) >= 3:
+
+            prev_layer = self._layers[-2]
+
+            # error handling
+            if isinstance(layer, Dense) and isinstance(prev_layer, Conv2D):
+                raise TypeError('need a \'Flatten\' Layer inbetween Conv2D layers and Dense Layers.')
+            if isinstance(layer, Conv2D) and isinstance(prev_layer, Conv2D):
+                layer.previous_filters = prev_layer.filters
+
+    def predict(self, x):
+        return self(x)
+
+
+class Sequential(BaseNetwork):
 
     def compile(self, loss, optimizer):
 

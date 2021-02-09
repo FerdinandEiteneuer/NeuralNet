@@ -32,15 +32,15 @@ if __name__ == '__main__':
 
     model = Sequential()
 
-    model.add(Dense(100, tanh, input_dim=input_dim, kernel_initializer=kernel_init))
-    model.add(Dense(100, tanh, kernel_initializer=kernel_init, kernel_regularizer=L1_L2(1e-4, 1e-3)))
+    model.add(Dense(200, tanh, input_dim=input_dim, kernel_initializer=kernel_init))
+    model.add(Dense(200, tanh, kernel_initializer=kernel_init, kernel_regularizer=L1_L2(1e-4, 1e-3)))
     model.add(Dense(output_dim, softmax, kernel_init))
 
 
     sgd = SGD(learning_rate=2*10**(-1), bias_correction=True, momentum=0.9)
-    nadam = Nadam(learning_rate=0.7*10**(-3), beta_1=0.9, beta_2=0.999, eps=10**(-8))
+    nadam = Nadam(learning_rate=10**(-3), beta_1=0.9, beta_2=0.999, eps=10**(-8))
 
-    model.compile(loss = crossentropy, optimizer=sgd)
+    model.compile(loss = crossentropy, optimizer=nadam)
     print(model)
 
     print('calculating loss for initial sanity check: ', end='')

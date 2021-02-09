@@ -1,40 +1,119 @@
-from kernel_initializer import kernels
-import numpy as np, sys
+import numpy as np
 
-class Conv2D:
-    def __init__(self, filtersize, stride, padding, activation, kernel_initializer):
+from .layer import Layer
+from . import kernel_initializers
+
+class Flatten(Layer):
+    pass
+
+class Conv2D(Layer):
+
+    def __init__(
+            self,
+            filters,
+            kernel_size,
+            stride,
+            padding,
+            activation,
+            input_shape=None,
+            kernel_initializer=kernel_initializers.glorot_uniform,
+            kernel_regularizer=None,
+            bias_regularizer=None):
+
+        super().__init__()
+        """     model = Sequential([
+                  Conv2D(num_filters, filter_size, input_shape=(28, 28, 1)),
+                  MaxPooling2D(pool_size=pool_size),
+                  Flatten(),
+                  Dense(10, activation='softmax')])"""
+        self.filters = filters
+        self.kernel_size = kernel_size
+        self.stride = stride
+        self.padding = padding
         self.g = activation
+        self.input_shape = input_shape
 
-        self.f = filtersize[0]
-        self.s = stride
+        self.kernel_initializer = kernel_initializer
+        self.kernel_regularizer = kernel_regularizer
+        self.bias_regularizer = bias_regularizer
 
-        self.get_padding(padding) #gets self.p / self.pads
+        if self.padding == 'valid':
+            self.p = 0
+        elif self.padding == 'same':
+            self.p = (kernel_size - 1) / 2
+        else:
+            raise ValueError(f'invalid padding: {padding}, must be one of "same" or "valid".')
 
-        self.c_prev = filtersize[2] #input channels
-        self.c = filtersize[3] #amount of new channels
-        self.initialize_params(kernel_initializer)
+        if self.kernel_size % 2 == 0:
+            #TODO  if removed, introduce the floor function to self.p
+            raise ValueError('invalid kernel size: {kernel_size}. must be an odd number')
 
-    def get_padding(self, padding):
-        self.pad_anything = True
-        if type(padding) == int:
-            self.p = padding
-            if self.p == 0:
-                self.pad_anything = False
-        elif padding == 'valid':
-            self.p = None #what about self.pad_anything? here and same
-        elif padding == 'same':
-            self.p = None
         #pad only height and width (and not channels, trainexamples)
         self.pads = ((self.p, self.p),(self.p, self.p),(0,0), (0,0))
 
-    def initialize_params(self, kernel_initializer):
-        shape = (self.f, self.f, self.c_prev, self.c)
-        self.w = kernels[kernel_initializer](shape)
-        self.b = np.zeros((1,1,self.c,1))
+    def prepare_params(self, input_shape=None):
 
-    def forward(self, a, gradient_check = False, grad_check_info=0):
+        f, k = self.filters, self.kernel_size
+        self.prev_f = input_shape[-1] if input_shape else self.input_shape[-1]
+
+        shape = (k, k, self.prev_f, f)
+
+        self.w = kernel_initializers.create(self.kernel_initializer, shape)
+        self.dw = np.zeros(self.w.shape)
+
+        self.b = np.zeros((f, 1))
+        self.db = np.zeros(self.b.shape)
+
+        self.output_dim = f
+
+
+    def forward(self, a):
+
+        print(f'forward {self.layer_id}')
+
+        if self.padding == 'same':
+            a = np.pad(a, pad_width=self.pads, mode='constant', constant_values=0)
+
+        height_prev, width_prev, channels_prev, nb_examples = a.shape
+
+        assert channels_prev == self.prev_f
+
+        height = int( (height_prev + 2*self.p - self.kernel_size)/self.stride + 1 )
+        width = int( (width_prev + 2*self.p - self.kernel_size)/self.stride + 1 )
+
+        print(height, width)
+
+        self.z = np.zeros((height, width, self.filters, nb_examples))
+
+        a = a[:,:,:,np.newaxis,:] #(height, width, c_prev, m) -> (height, width, c_prev, AXIS, m)
+        W = self.w[...,np.newaxis] #(f, f, c_prev, c) -> (f, f, c_prev, c, AXIS)
+
+        print(f'{a.shape=}')
+        print(f'{W.shape=}')
+
+        k = self.kernel_size
+
+        for h in range(height):
+            for w in range(width):
+                image_part = a[h: h + k, w: w + k, ...]
+
+                product = image_part * W
+                print(f'product = {product.shape}')
+
+                conv = np.sum(image_part * W, axis=(0, 1, 2))
+                print(f'{image_part.shape=}')
+                print(f'{conv.shape=}')
+                print(f'put into {self.z[h, w, ...].shape} z')
+                self.z[h, w, ...] = conv + self.b
+
+        print(f'{self.z.shape=}')
+        self.a = self.g(self.z)
+        return self.a
+
+
+    def forward_(self, a, gradient_check = False, grad_check_info=0):
         #zero padding
-        if self.pad_anything:
+        if self.padding == 'same':
             a = np.pad(a, pad_width=self.pads, mode='constant', constant_values=0)
         height_prev, width_prev, channels_prev, m = a.shape
         assert(channels_prev == self.c_prev)
@@ -49,12 +128,6 @@ class Conv2D:
         W = self.w[...,np.newaxis] #(f, f, c_prev, c) -> (f, f, c_prev, c, AXIS)
         #this way, when summing over the first three axis( height/f, width/f, c_prev) a tensor with indices c,m (in this order) is created
         #compare to the shape of the tensor 'self.z'
-        
-        #gradient checking
-        if gradient_check:
-            W_temp = np.copy(W)
-            j_change, k_change, c_prev_change, c_change, tinychange = grad_check_info
-            W[j_change, k_change, c_prev_change, c_change] += tinychange
 
         #convolution
         for h in range(height):
@@ -70,7 +143,7 @@ class Conv2D:
                 #print image_patch.shape, a.shape, start_w, end_w
                 self.z[h,w,:,:] = np.sum(image_patch * W, axis = (0,1,2)) + self.b
                 #print 'shape',new[h,w,:,:].shape, self.b.shape
-   
+
         self.a = self.g(self.z)
         #sys.exit()
 
@@ -81,10 +154,10 @@ class Conv2D:
 
 
     def grads(self, a_prev, N):
-        I, J, C, N = self.error.shape     
+        I, J, C, N = self.error.shape
         self.dw = np.zeros(self.w.shape)
         self.db = np.zeros(self.b.shape)
-        
+
         error = self.error[:,:,np.newaxis,:,:]
 
         for k in range(self.f):
@@ -93,15 +166,20 @@ class Conv2D:
                 axis2 = self.s * np.arange(J) + l
                 a_prev_part = a_prev[np.ix_(axis1, axis2)]
                 a_prev_part = a_prev_part[:,:,:,np.newaxis,:]
-                
+
                 self.dw[k,l,:,:] = 1./N * np.sum(error * a_prev_part, axis = (0,1,4))
-        
+
         self.db = 1./N * np.sum(self.error, axis=(0,1,3), keepdims=True)
-                
-    
+
+
     def get_error(self, back_err):
         self.error = back_err * self.g(self.z, derivative=True)
         return self.error
+
+    def backward_step(self):
+        pass
+
+
 
     def backward(self, verbose=True, mode=2):
         if mode == 1:
@@ -114,7 +192,7 @@ class Conv2D:
         channels = self.c_prev
         n = self.z.shape[3]
         self.backerr = np.zeros((height, width, channels, n))
-         
+
         mins, maxs = self.lower_upper_summation_indices(height, self.f, self.s)
         if verbose: print('\tbackward: using the following summations\n\t\tmins', mins, '\n\t\tmaxs', maxs, '\n\t\terror shape used:', self.error.shape, 'backerr shape', self.backerr.shape)
         for h in range(height):
@@ -137,22 +215,22 @@ class Conv2D:
                 if verbose: print(W_part.shape)
                 W_part = W_part[...,np.newaxis]
                 if verbose: print(W_part.shape)
-                
+
                 if verbose: print('error_part', error_part.shape,'*', 'W_part', W_part.shape)
                 back_part = np.sum(error_part * W_part, axis=(0,1,3))
                 if verbose: print('back_part = error_part*W_part shape ',back_part.shape)
                 self.backerr[h,w,:,:] = back_part
         if verbose: print('\tcalculated back_err_%s for next shallow layer. shape:' % (self.l),  self.backerr.shape)
-        return self.backerr 
-        
+        return self.backerr
+
     def backward2(self, verbose=False):
         height = width = self.s*(self.z.shape[0] - 1) - 2*self.p + self.f #this is the shape of previous activation
         channels = self.c_prev
         n = self.z.shape[3]
         self.backerr = np.zeros((height, width, channels, n))
-        
+
         I_max, J_max, C_max = self.z.shape[:3]
-        
+
         for h in range(height):
             for w in range(width):
                 I = np.arange(I_max)
@@ -164,7 +242,7 @@ class Conv2D:
                 idx_J = w - self.s * J
                 mask_J = idx_J > 0
 
-            
+
                 idx_I = idx_I[mask_I]
                 idx_J = idx_J[mask_J]
                 error_part = self.error[np.ix_(I[mask_I], J[mask_J])]
@@ -177,14 +255,14 @@ class Conv2D:
                 if verbose: print(W_part.shape)
                 W_part = W_part[...,np.newaxis]
                 if verbose: print(W_part.shape)
-                
+
                 if verbose: print('error_part', error_part.shape,'*', 'W_part', W_part.shape)
                 back_part = np.sum(error_part * W_part, axis=(0,1,3))
                 if verbose: print('back_part = error_part*W_part shape ',back_part.shape)
                 self.backerr[h,w,:,:] = back_part
         if verbose: print('\tcalculated back_err_%s for next shallow layer. shape:' % (self.l),  self.backerr.shape)
-        return self.backerr 
-        
+        return self.backerr
+
 
 
     def update(self, lr):

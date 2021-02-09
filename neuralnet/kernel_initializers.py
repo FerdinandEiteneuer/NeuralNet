@@ -1,7 +1,7 @@
 import numpy as np
 import inspect
 
-__all__ = ['glorot_uniform', 'normal', 'xavier']
+__all__ = ['glorot_uniform', 'normal', 'xavier', 'integers']
 
 def glorot_uniform(shape):
     output_dim, input_dim = shape[:2]
@@ -10,6 +10,9 @@ def glorot_uniform(shape):
 
 def normal(shape):
     return 0.01 * np.random.normal(size=shape)
+
+def integers(shape):
+    return np.random.randint(0, 5, size=shape)
 
 def xavier(shape):
     raise NotImplementedError

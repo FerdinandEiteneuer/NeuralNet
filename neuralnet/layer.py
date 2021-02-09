@@ -6,8 +6,11 @@ class Layer():
 
     _ids = itertools.count(0)
 
-    def __init__(self):
-        self.layer_id = next(self.__class__._ids)  # layer number automatically generated.
+    def __init__(self, layer_id = None):
+        #self.layer_id = next(self.__class__._ids)  # layer number automatically generated.
+        #self.layer_id = next(self._ids)  # layer number automatically generated.
+        self.layer_id = layer_id
+        self.class_layer_id = None
 
     def __str__(self):
         '''
@@ -15,9 +18,9 @@ class Layer():
         dense_1 (Dense)              (10, 10)                 110
         '''
         name = self.__class__.__name__                     # e.g: Dense
-        lower_with_id = f'{name.lower()}_{self.layer_id}'  # e.g: dense_1
+        lower_with_id = f'{name.lower()}_{self.class_layer_id}'  # e.g: dense_1
 
-        shape = self.w.shape if hasattr(self, 'w') else 'input data storage helper layer'
+        shape = self.w.shape if hasattr(self, 'w') else 'n/a'
 
         if hasattr(self, 'w') and hasattr(self, 'b'):
             n_parameters = np.product(self.w.shape) + np.product(self.b.shape)
@@ -27,9 +30,6 @@ class Layer():
         s = f'{lower_with_id} ({name}){"":<13} {str(shape):<25} {n_parameters}'
 
         return s
-
-#    def __str__(self):
-#        return f'layer {self.layer_id} (input storing layer)'
 
     def __call__(self, a):
         return self.forward(a)
