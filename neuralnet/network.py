@@ -36,10 +36,11 @@ class BaseNetwork():
 
     def __str__(self):
 
-        s  = '\n' + 62 * '_' + '\n'
+        width = 65
+        s  = '\n' + width * '_' + '\n'
         #s += 'Layer (type)                 Output Shape              Param #\n'
-        s += 'Layer (type)                   Weight Shape            Param #\n'
-        s += 62 * '=' + '\n'
+        s += 'Layer (type)                 Output Shape              Param #   \n'
+        s += width * '=' + '\n'
         number_params = 0
         params = ['w','b','beta','gamma']
         for layer in self:
@@ -50,9 +51,12 @@ class BaseNetwork():
                     N = np.product(par.shape)
                     number_params += N
 
-        s += f'Total params: {number_params}\n' \
+        s += f'{width * "="}\n' \
+            f'Total params: {number_params}\n' \
             f'Trainable params: {number_params}\n' \
-            f'Non-trainable params: 0\n'
+            f'Non-trainable params: 0\n' \
+            f'{width * "_"}\n'
+
 
         if hasattr(self, 'optimizer'):
             s += '\n' + str(self.optimizer) + '\n'
@@ -86,7 +90,6 @@ class BaseNetwork():
             self._dense_layers += 1
 
         elif isinstance(layer, Conv2D):
-            print('HI•')
             layer.class_layer_id = self._conv_layers
             self._conv_layers += 1
 

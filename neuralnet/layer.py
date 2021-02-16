@@ -11,6 +11,7 @@ class Layer():
         #self.layer_id = next(self._ids)  # layer number automatically generated.
         self.layer_id = layer_id
         self.class_layer_id = None
+        self.output_dim = None
 
     def __str__(self):
         '''
@@ -27,7 +28,10 @@ class Layer():
         else:
             n_parameters = 'n/a'
 
-        s = f'{lower_with_id} ({name}){"":<13} {str(shape):<25} {n_parameters}'
+
+        output_dim = self.output_dim + (None, )
+
+        s = f'{lower_with_id} ({name}){"":<11} {str(output_dim):<25} {n_parameters}'
 
         return s
 
