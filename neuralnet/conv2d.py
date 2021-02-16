@@ -44,17 +44,23 @@ class Conv2D(Layer):
         else:
             raise ValueError(f'invalid padding: {padding}, must be one of "same" or "valid".')
 
+        #pad only height and width (and not channels, trainexamples)
+        self.pads = ((self.p, self.p),(self.p, self.p),(0,0), (0,0))
+
         if self.kernel_size % 2 == 0:
             #TODO  if removed, introduce the floor function to self.p
             raise ValueError('invalid kernel size: {kernel_size}. must be an odd number')
 
-        #pad only height and width (and not channels, trainexamples)
-        self.pads = ((self.p, self.p),(self.p, self.p),(0,0), (0,0))
-
     def prepare_params(self, input_shape=None):
 
         f, k = self.filters, self.kernel_size
-        self.prev_f = input_shape[-1] if input_shape else self.input_shape[-1]
+
+        if not input_shape:
+            input_shape = self.input_shape
+
+        self.prev_width = input_shape[0]
+        self.prev_height = input_shape[1]
+        self.prev_f = input_shape[2]
 
         shape = (k, k, self.prev_f, f)
 
@@ -64,7 +70,13 @@ class Conv2D(Layer):
         self.b = np.zeros((f, 1))
         self.db = np.zeros(self.b.shape)
 
-        self.output_dim = f
+        if self.padding != 'valid':
+            raise NotImplementedError
+
+
+        output_height = int( (self.prev_height + 2*self.p - self.kernel_size)/self.stride + 1 )
+        output_width = int( (self.prev_width + 2*self.p - self.kernel_size)/self.stride + 1 )
+        self.output_dim = (output_height, output_width, f)
 
 
     def forward(self, a):
@@ -74,22 +86,18 @@ class Conv2D(Layer):
         if self.padding == 'same':
             a = np.pad(a, pad_width=self.pads, mode='constant', constant_values=0)
 
-        height_prev, width_prev, channels_prev, nb_examples = a.shape
+        nb_examples = a.shape[-1]
 
-        assert channels_prev == self.prev_f
 
-        height = int( (height_prev + 2*self.p - self.kernel_size)/self.stride + 1 )
-        width = int( (width_prev + 2*self.p - self.kernel_size)/self.stride + 1 )
-
-        print(height, width)
+        height, width, _ = self.output_dim
 
         self.z = np.zeros((height, width, self.filters, nb_examples))
 
         a = a[:,:,:,np.newaxis,:] #(height, width, c_prev, m) -> (height, width, c_prev, AXIS, m)
         W = self.w[...,np.newaxis] #(f, f, c_prev, c) -> (f, f, c_prev, c, AXIS)
 
-        print(f'{a.shape=}')
-        print(f'{W.shape=}')
+        #print(f'{a.shape=}')
+        #print(f'{W.shape=}')
 
         k = self.kernel_size
 
@@ -98,58 +106,16 @@ class Conv2D(Layer):
                 image_part = a[h: h + k, w: w + k, ...]
 
                 product = image_part * W
-                print(f'product = {product.shape}')
+                #print(f'product = {product.shape}')
 
                 conv = np.sum(image_part * W, axis=(0, 1, 2))
-                print(f'{image_part.shape=}')
-                print(f'{conv.shape=}')
-                print(f'put into {self.z[h, w, ...].shape} z')
+                #print(f'{image_part.shape=}')
+                #print(f'{conv.shape=}')
+                #print(f'put into {self.z[h, w, ...].shape} z')
                 self.z[h, w, ...] = conv + self.b
 
         print(f'{self.z.shape=}')
         self.a = self.g(self.z)
-        return self.a
-
-
-    def forward_(self, a, gradient_check = False, grad_check_info=0):
-        #zero padding
-        if self.padding == 'same':
-            a = np.pad(a, pad_width=self.pads, mode='constant', constant_values=0)
-        height_prev, width_prev, channels_prev, m = a.shape
-        assert(channels_prev == self.c_prev)
-
-        #create output volume
-        height = (height_prev + 2*self.p - self.f)/self.s + 1
-        width = (width_prev + 2*self.p - self.f)/self.s + 1
-        self.z = np.zeros((height, width, self.c, m))
-
-        #prepare for convolution (corrext axis so that shapes fit for * operation)
-        a = a[:,:,:,np.newaxis,:] #(height, width, c_prev, m) -> (height, width, c_prev, AXIS, m)
-        W = self.w[...,np.newaxis] #(f, f, c_prev, c) -> (f, f, c_prev, c, AXIS)
-        #this way, when summing over the first three axis( height/f, width/f, c_prev) a tensor with indices c,m (in this order) is created
-        #compare to the shape of the tensor 'self.z'
-
-        #convolution
-        for h in range(height):
-            for w in range(width):
-                start_h = h*self.s
-                end_h = h*self.s + self.f
-
-                start_w = w*self.s
-                end_w = w*self.s + self.f
-
-                image_patch = a[start_h:end_h, start_w:end_w,:,:]
-                #print 'PIXEL h:%i, w:%i' % (h, w)
-                #print image_patch.shape, a.shape, start_w, end_w
-                self.z[h,w,:,:] = np.sum(image_patch * W, axis = (0,1,2)) + self.b
-                #print 'shape',new[h,w,:,:].shape, self.b.shape
-
-        self.a = self.g(self.z)
-        #sys.exit()
-
-        if gradient_check:
-            W = W_temp
-
         return self.a
 
 
@@ -264,10 +230,6 @@ class Conv2D(Layer):
         return self.backerr
 
 
-
-    def update(self, lr):
-        self.w -= lr * self.dw
-        self.b -= lr * self.db
 
     def lower_upper_summation_indices(self, h, f, s):
         #lower
