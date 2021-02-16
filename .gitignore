@@ -14,5 +14,6 @@ ignored_files/
 temp/
 build/
 dist/
+tests/
 
 NumpyNeuralNet*
