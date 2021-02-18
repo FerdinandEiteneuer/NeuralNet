@@ -152,7 +152,7 @@ class Sequential(BaseNetwork):
 
     def backpropagation(self, x, y, verbose=True):
 
-        error_prev = self._backprop_last_layer(x, y)
+        error_prev = self.backprop_last_layer(x, y)
 
         for l in range(len(self)-1, 0, -1):
 
@@ -162,7 +162,7 @@ class Sequential(BaseNetwork):
             error_prev = self[l].backward_step(a_next, w_prev, error_prev)
 
 
-    def _backprop_last_layer(self, x, y):
+    def backprop_last_layer(self, x, y):
         '''
         calculates the error for the last layer.
         It is a little bit special as it involves
@@ -272,38 +272,31 @@ class Sequential(BaseNetwork):
         return losses
 
 
-    def complete_gradient_check(self, x, y, eps=10**(-6)):
-        self.grads_ = []
-        for layer in self:
+    def gradient_check(self, x, ytrue, eps, layer_id, weight_idx):
+        ''' To test the backprop algorithm, we manually check the gradient
+            for one chosen weight/bias. do this by using
 
-            gradient_manual = np.zeros(layer.w.shape)
+               df(x)/dx = (f(x+eps) - f(x-eps)/2/eps
+        '''
 
-            ranges = [range(dim) for dim in layer.w.shape]
-            for idx in itertools.product(*ranges):
+        cost = 0
+        w_original = self[layer_id].w[weight_idx]
 
-                gradient = self.gradient_check(
-                    x=x,
-                    ytrue=y,
-                    eps=eps,
-                    layer_id=layer.layer_id,
-                    weight_idx=idx
-                )
+        for sign in [+1, -1]:
 
-                gradient_manual[idx] = gradient
+            self[layer_id].w[weight_idx] = w_original + sign * eps # change weight
+            cost += sign * self.get_loss(x, ytrue, average_examples=True)
 
-            numerator = np.linalg.norm(gradient_manual - layer.dw)
-            denominator = np.linalg.norm(gradient_manual) +  np.linalg.norm(layer.dw)
+        self[layer_id].w[weight_idx] = w_original  # restore weight
 
-            goodness = numerator / denominator
-            self.n= numerator
-            self.d=denominator
-            self.grads_.append(gradient_manual)
-            print(f'backprop err layer {layer.layer_id}: {goodness=}')
+
+        gradient_manual = cost / (2*eps)
+        return gradient_manual
 
 
     def gradient_checks(self, x, ytrue, checks=15, eps=10**(-6)):
         '''
-        Carries out several gradient checks in random places at once
+        Carries out several gradient checks in random places.
         '''
 
         grads = np.zeros(checks)
@@ -335,21 +328,34 @@ class Sequential(BaseNetwork):
         return goodness
 
 
-    def gradient_check(self, x, ytrue, eps, layer_id, weight_idx):
-        ''' to test the backprop algorithm, we also manually check the gradient
-            for one randomly chosen weight/bias
-            do this by using df(x)/dx = (f(x+eps) - f(x-eps)/2/eps'''
+    def complete_gradient_check(self, x, y, eps=10**(-6)):
+        ''' Checks the gradient for every weight in the network.'''
+        self.grads_ = []
+        for layer in self:
 
-        cost = 0
-        w_original = self[layer_id].w[weight_idx]
+            gradient_manual = np.zeros(layer.w.shape)
 
-        for sign in [+1, -1]:
+            ranges = [range(dim) for dim in layer.w.shape]
+            for idx in itertools.product(*ranges):
 
-            self[layer_id].w[weight_idx] = w_original + sign * eps # change weight
-            cost += sign * self.get_loss(x, ytrue, average_examples=True)
+                gradient = self.gradient_check(
+                    x=x,
+                    ytrue=y,
+                    eps=eps,
+                    layer_id=layer.layer_id,
+                    weight_idx=idx
+                )
 
-        self[layer_id].w[weight_idx] = w_original  # restore weight
+                gradient_manual[idx] = gradient
+
+            numerator = np.linalg.norm(gradient_manual - layer.dw)
+            denominator = np.linalg.norm(gradient_manual) +  np.linalg.norm(layer.dw)
+
+            goodness = numerator / denominator
+            self.n= numerator
+            self.d=denominator
+            self.grads_.append(gradient_manual)
+            print(f'backprop err layer {layer.layer_id}: {goodness=}')
 
 
-        gradient_manual = cost / (2*eps)
-        return gradient_manual
+
