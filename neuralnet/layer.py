@@ -12,11 +12,7 @@ class Layer():
         self.output_dim = None
 
     def __str__(self):
-        '''
-        possible result of __str__:
-        dense_1 (Dense)              (10, None)                 110
-        '''
-        name = f'({self.__class__.__name__})'                                   # e.g: (Dense)
+        name = f'({self.__class__.__name__})'  # e.g: (Dense)
         lower_with_id = f'{self.__class__.__name__.lower()}_{self.class_layer_id}'  # e.g: dense_1
 
         shape = self.w.shape if hasattr(self, 'w') else 'n/a'
@@ -30,7 +26,9 @@ class Layer():
         output_dim = tuple(self.output_dim) + (None, )
 
         s = f'{lower_with_id + " " + name:29}{str(output_dim):26}{n_parameters:<}'
-        #s = f'{lower_with_id} ({name}){"":<11} {str(output_dim):<25} {n_parameters}'
+
+        #possible result of __str__:
+        #dense_1 (Dense)              (10, None)                 110
 
         return s
 
