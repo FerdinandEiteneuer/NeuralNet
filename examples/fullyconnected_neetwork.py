@@ -33,7 +33,7 @@ if __name__ == '__main__':
     model = Sequential()
 
     model.add(Dense(200, tanh, input_dim=input_dim, kernel_initializer=kernel_init))
-    model.add(Dense(200, tanh, kernel_initializer=kernel_init, kernel_regularizer=L1_L2(1e-4, 1e-3)))
+    model.add(Dense(100, tanh, kernel_initializer=kernel_init, kernel_regularizer=L1_L2(1e-4, 1e-3)))
     model.add(Dense(output_dim, softmax, kernel_init))
 
 
@@ -41,16 +41,15 @@ if __name__ == '__main__':
     nadam = Nadam(learning_rate=10**(-3), beta_1=0.9, beta_2=0.999, eps=10**(-8))
 
     model.compile(loss = crossentropy, optimizer=nadam)
-    print(model)
+    print(model.summary())
 
     print('calculating loss for initial sanity check: ', end='')
     model.get_loss(xtrain, ytrain, average_examples=True, verbose=True)
 
-
     model.fit(
         x=xtrain,
         y=ytrain,
-        epochs=120,
+        epochs=8,
         batch_size=500,
         validation_data=(xtest, ytest),
         gradients_to_check_each_epoch=3,

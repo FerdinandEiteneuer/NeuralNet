@@ -29,10 +29,12 @@ class BaseNetwork():
 
         if layers:
             for layer in layers:
-                print('adding ', layer)
                 self.add(layer)
 
         self.epoch = 0
+
+    def summary(self):
+        return self.__str__()
 
     def __str__(self):
 

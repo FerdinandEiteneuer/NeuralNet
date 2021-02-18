@@ -9,10 +9,10 @@ class Dense(Layer):
             self,
             output_dim,
             activation,
-            input_dim=None,
             kernel_initializer=kernel_initializers.normal,
             kernel_regularizer=None,
             bias_regularizer=None,
+            input_dim=None,
             verbose=False):
 
         super().__init__()
@@ -20,7 +20,9 @@ class Dense(Layer):
         self.verbose = verbose
         self.g = activation
 
-        self.output_dim = output_dim
+        assert isinstance(output_dim, int)
+        self.output_dim = (output_dim, )
+
         self.input_dim = input_dim
 
         self.kernel_initializer = kernel_initializer
@@ -31,14 +33,14 @@ class Dense(Layer):
 
     def prepare_params(self, input_dim=None):
         if input_dim:
-            self.shape = self.output_dim, input_dim
+            self.shape = self.output_dim + input_dim
         else:
-            self.shape = self.output_dim, self.input_dim
+            self.shape = self.output_dim + (self.input_dim, )
 
         self.w = kernel_initializers.create(self.kernel_initializer, self.shape)
         self.dw = np.zeros(self.w.shape)
 
-        self.b = np.zeros((self.output_dim, 1))
+        self.b = np.zeros(self.output_dim + (1,) )
         self.db = np.zeros(self.b.shape)
 
 

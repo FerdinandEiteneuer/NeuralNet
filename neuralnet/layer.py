@@ -7,8 +7,6 @@ class Layer():
     _ids = itertools.count(0)
 
     def __init__(self, layer_id = None):
-        #self.layer_id = next(self.__class__._ids)  # layer number automatically generated.
-        #self.layer_id = next(self._ids)  # layer number automatically generated.
         self.layer_id = layer_id
         self.class_layer_id = None
         self.output_dim = None
@@ -16,10 +14,10 @@ class Layer():
     def __str__(self):
         '''
         possible result of __str__:
-        dense_1 (Dense)              (10, 10)                 110
+        dense_1 (Dense)              (10, None)                 110
         '''
-        name = self.__class__.__name__                     # e.g: Dense
-        lower_with_id = f'{name.lower()}_{self.class_layer_id}'  # e.g: dense_1
+        name = f'({self.__class__.__name__})'                                   # e.g: (Dense)
+        lower_with_id = f'{self.__class__.__name__.lower()}_{self.class_layer_id}'  # e.g: dense_1
 
         shape = self.w.shape if hasattr(self, 'w') else 'n/a'
 
@@ -29,9 +27,10 @@ class Layer():
             n_parameters = 'n/a'
 
 
-        output_dim = self.output_dim + (None, )
+        output_dim = tuple(self.output_dim) + (None, )
 
-        s = f'{lower_with_id} ({name}){"":<11} {str(output_dim):<25} {n_parameters}'
+        s = f'{lower_with_id + " " + name:29}{str(output_dim):26}{n_parameters:<}'
+        #s = f'{lower_with_id} ({name}){"":<11} {str(output_dim):<25} {n_parameters}'
 
         return s
 
