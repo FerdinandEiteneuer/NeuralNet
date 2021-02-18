@@ -42,6 +42,7 @@ class Dense(Layer):
 
         self.b = np.zeros(self.output_dim + (1,) )
         self.db = np.zeros(self.b.shape)
+        return self.output_dim
 
 
     def forward(self, a):

@@ -132,8 +132,7 @@ class Sequential(BaseNetwork):
                              'It can not be deduced by previous layers.')
 
         for layer in self[2:]:
-            layer.prepare_params(next_input_dim)
-            next_input_dim = layer.output_dim
+            next_input_dim = layer.prepare_params(next_input_dim)
 
         self.optimizer = optimizer.prepare_params(self)
 
