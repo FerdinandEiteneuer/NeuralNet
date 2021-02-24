@@ -29,7 +29,7 @@ class SGD:
         '''
         self.network = network
 
-        for layer in self.network:
+        for layer in self.network.trainable_layers():
 
             self.mom_w[layer.layer_id] = np.zeros(layer.w.shape)
             self.mom_b[layer.layer_id] = np.zeros(layer.b.shape)
@@ -44,7 +44,7 @@ class SGD:
     def update_weights(self):
         μ = self.beta_1  # readability
 
-        for layer in self.network:
+        for layer in self.network.trainable_layers():
 
             l = layer.layer_id
 
@@ -91,7 +91,8 @@ class Nadam:
         '''
         self.network = network
 
-        for layer in self.network:
+        for layer in self.network.trainable_layers():
+
             l = layer.layer_id
 
             self.mom_w[l] = np.zeros(layer.w.shape)
@@ -114,7 +115,7 @@ class Nadam:
         t = self.updates
         ε = self.eps
 
-        for layer in self.network:
+        for layer in self.network.trainable_layers():
 
             l = layer.layer_id
             #momentum

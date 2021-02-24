@@ -14,7 +14,7 @@ class Flatten(Layer):
 
     def prepare_params(self, input_shape):
         self.input_shape = input_shape
-        self.output_dim = np.product(input_shape)
+        self.output_dim = (np.product(input_shape), )
         return self.output_dim
 
     def backward_step(self, error):
@@ -63,7 +63,7 @@ class Conv2D(Layer):
         self.pads = ((self.p, self.p),(self.p, self.p),(0,0), (0,0))
 
         if self.kernel_size % 2 == 0:
-            #TODO  if removed, introduce the floor function to self.p
+            #TODO  if this error is removed, introduce the floor function to self.p
             raise ValueError('invalid kernel size: {kernel_size}. must be an odd number')
 
     def prepare_params(self, input_shape=None):
@@ -96,7 +96,8 @@ class Conv2D(Layer):
 
     def forward(self, a):
 
-        print(f'forward {self.layer_id}')
+        print(f'forward {self.name}')
+        print(f'{a.shape=}')
 
         if self.padding == 'same':
             a = np.pad(a, pad_width=self.pads, mode='constant', constant_values=0)
@@ -127,6 +128,8 @@ class Conv2D(Layer):
                 self.z[h, w, ...] = conv + self.b
 
         self.a = self.g(self.z)
+
+        print(f'forward {self.name} done')
         return self.a
 
 

@@ -12,7 +12,7 @@ class Dense(Layer):
             kernel_initializer=kernel_initializers.normal,
             kernel_regularizer=None,
             bias_regularizer=None,
-            input_dim=None,
+            input_shape=None,
             verbose=False):
 
         super().__init__()
@@ -23,7 +23,7 @@ class Dense(Layer):
         assert isinstance(output_dim, int)
         self.output_dim = (output_dim, )
 
-        self.input_dim = input_dim
+        self.input_shape = input_shape
 
         self.kernel_initializer = kernel_initializer
 
@@ -31,12 +31,13 @@ class Dense(Layer):
         self.bias_regularizer = bias_regularizer(self, 'b') if bias_regularizer else None
 
 
-    def prepare_params(self, input_dim=None):
-        if input_dim:
-            self.shape = self.output_dim + input_dim
+    def prepare_params(self, input_shape=None):
+        if input_shape:
+            self.shape = self.output_dim + input_shape
         else:
-            self.shape = self.output_dim + (self.input_dim, )
+            self.shape = self.output_dim + (self.input_shape, )
 
+        print('dense prepare params:', self.shape, input_shape)
         self.w = kernel_initializers.create(self.kernel_initializer, self.shape)
         self.dw = np.zeros(self.w.shape)
 

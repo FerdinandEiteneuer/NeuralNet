@@ -95,8 +95,8 @@ class BaseNetwork():
             layer.class_layer_id = self._conv_layers
             self._conv_layers += 1
 
-        elif isintance(layer, Flatten):
-            layer._class_layer_id = self._flatten_layers
+        elif isinstance(layer, Flatten):
+            layer.class_layer_id = self._flatten_layers
             self._flatten_layers += 1
 
         else:
@@ -112,6 +112,13 @@ class BaseNetwork():
             if isinstance(layer, Conv2D) and isinstance(prev_layer, Conv2D):
                 layer.previous_filters = prev_layer.filters
 
+        print(f'adding {layer=} with class_layer_id {layer.class_layer_id}')
+
+    def trainable_layers(self):
+        for layer in self:
+            if hasattr(layer, 'w'):
+                yield layer
+
     def predict(self, x):
         return self(x)
 
@@ -125,16 +132,17 @@ class Sequential(BaseNetwork):
 
         first_layer = self[1]
 
-        assert isinstance(first_layer) != Flatten, 'Flatten as first layer is not supported'
+        assert not isinstance(first_layer, Flatten), 'Flatten as first layer is not supported'
 
-        next_input_dim = first_layer.prepare_params()
+        next_input_shape = first_layer.prepare_params()
 
-        if not next_input_dim:
+        if not next_input_shape:
             raise ValueError('The first layer must have an input_dim.'
                              'It can not be deduced by previous layers.')
 
         for layer in self[2:]:
-            next_input_dim = layer.prepare_params(next_input_dim)
+            print(f'preparing {layer=} with {next_input_shape=}')
+            next_input_shape = layer.prepare_params(next_input_shape)
 
         self.optimizer = optimizer.prepare_params(self)
 

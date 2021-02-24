@@ -1,5 +1,7 @@
 import itertools
 import numpy as np
+import abc
+
 
 class Layer():
     ''' Base Layer'''
@@ -25,7 +27,8 @@ class Layer():
 
         output_dim = tuple(self.output_dim) + (None, )
 
-        s = f'{lower_with_id + " " + name:29}{str(output_dim):26}{n_parameters:<}'
+        #s = f'{lower_with_id + " " + name:29}{str(output_dim):26}{n_parameters:<}'
+        s = f'{self.name + " " + name:29}{str(output_dim):26}{n_parameters:<}'
 
         #possible result of __str__:
         #dense_1 (Dense)              (10, None)                 110
@@ -39,6 +42,9 @@ class Layer():
         '''The forward bethod of the base layer passes the activation along.'''
         return a
 
+    @property
+    def name(self):
+        return f'{self.__class__.__name__.lower()}_{self.class_layer_id}'  # e.g: dense_1
 
 if __name__ == '__main__':
     l = Layer()
