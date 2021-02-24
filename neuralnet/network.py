@@ -124,8 +124,10 @@ class Sequential(BaseNetwork):
         self.derivative_loss_fct = loss().derivative
 
         first_layer = self[1]
-        first_layer.prepare_params()
-        next_input_dim = first_layer.output_dim
+
+        assert isinstance(first_layer) != Flatten, 'Flatten as first layer is not supported'
+
+        next_input_dim = first_layer.prepare_params()
 
         if not next_input_dim:
             raise ValueError('The first layer must have an input_dim.'

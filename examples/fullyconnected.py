@@ -28,12 +28,10 @@ if __name__ == '__main__':
     input_dim = xtrain.shape[0]
     output_dim = ytrain.shape[0]
 
-    kernel_init = normal
-
     model = Sequential()
 
-    model.add(Dense(200, tanh, input_dim=input_dim, kernel_initializer=kernel_init))
-    model.add(Dense(100, tanh, kernel_initializer=kernel_init, kernel_regularizer=L1_L2(1e-4, 1e-3)))
+    model.add(Dense(200, tanh, input_dim=input_dim, kernel_initializer=normal))
+    model.add(Dense(100, tanh, kernel_initializer=normal, kernel_regularizer=L1_L2(1e-4, 1e-3)))
     model.add(Dense(output_dim, softmax, kernel_init))
 
 

@@ -4,7 +4,22 @@ from .layer import Layer
 from . import kernel_initializers
 
 class Flatten(Layer):
-    pass
+
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, a):
+        nb_examples = a.shape[-1]
+        return a.reshape(-1, nb_examples)
+
+    def prepare_params(self, input_shape):
+        self.input_shape = input_shape
+        self.output_dim = np.product(input_shape)
+        return self.output_dim
+
+    def backward_step(self, error):
+        return error.reshape(*self.input_shape, -1)
+
 
 class Conv2D(Layer):
 
@@ -77,7 +92,7 @@ class Conv2D(Layer):
         output_height = int( (self.prev_height + 2*self.p - self.kernel_size)/self.stride + 1 )
         output_width = int( (self.prev_width + 2*self.p - self.kernel_size)/self.stride + 1 )
         self.output_dim = (output_height, output_width, f)
-
+        return self.output_dim
 
     def forward(self, a):
 
@@ -96,9 +111,6 @@ class Conv2D(Layer):
         a = a[:,:,:,np.newaxis,:] #(height, width, c_prev, m) -> (height, width, c_prev, AXIS, m)
         W = self.w[...,np.newaxis] #(f, f, c_prev, c) -> (f, f, c_prev, c, AXIS)
 
-        #print(f'{a.shape=}')
-        #print(f'{W.shape=}')
-
         k = self.kernel_size
 
         for h in range(height):
@@ -114,7 +126,6 @@ class Conv2D(Layer):
                 #print(f'put into {self.z[h, w, ...].shape} z')
                 self.z[h, w, ...] = conv + self.b
 
-        print(f'{self.z.shape=}')
         self.a = self.g(self.z)
         return self.a
 
