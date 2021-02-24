@@ -37,7 +37,6 @@ class Dense(Layer):
         else:
             self.shape = self.output_dim + (self.input_shape, )
 
-        print('dense prepare params:', self.shape, input_shape)
         self.w = kernel_initializers.create(self.kernel_initializer, self.shape)
         self.dw = np.zeros(self.w.shape)
 
@@ -71,11 +70,3 @@ class Dense(Layer):
 
         return error
 
-
-    def loss_from_regularizers(self, batch_size):
-        loss = 0
-        if self.kernel_regularizer:
-            loss += self.kernel_regularizer.loss()
-        if self.bias_regularizer:
-            loss += self.bias_regularizer.loss()
-        return loss / batch_size

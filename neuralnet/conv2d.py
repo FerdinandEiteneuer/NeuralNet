@@ -133,6 +133,10 @@ class Conv2D(Layer):
         return self.a
 
 
+    def backward_step(self, a_next, w_prev, error_prev):
+ 
+
+
     def grads(self, a_prev, N):
         I, J, C, N = self.error.shape
         self.dw = np.zeros(self.w.shape)
@@ -156,16 +160,12 @@ class Conv2D(Layer):
         self.error = back_err * self.g(self.z, derivative=True)
         return self.error
 
-    def backward_step(self):
-        pass
-
-
-
     def backward(self, verbose=True, mode=2):
         if mode == 1:
             return self.backward1(verbose)
         elif mode == 2:
             return self.backward2(verbose)
+
 
     def backward1(self, verbose=False):
         height = width = self.s*(self.z.shape[0] - 1) - 2*self.p + self.f #this is the shape of previous activation
@@ -263,17 +263,4 @@ class Conv2D(Layer):
 
 
 if __name__ == '__main__':
-    from kernel_initializer import integers
-    from activations import relu
-
-    x = np.random.randint(1,5,(28,28,1,20))
-
-    conv = Conv2D((5,5,1,3), 1, 0, relu, 'integers')
-    z, a = conv.forward(x)
-
-    w = conv.w
-    f1 = w[:,:,0,0]
-    f2 = w[:,:,0,1]
-    img = x[:,:,0,0]
-    a1 = a[:,:,0,0]
-    a2 = a[:,:,1,0]
+    pass

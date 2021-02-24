@@ -12,6 +12,8 @@ class Layer():
         self.layer_id = layer_id
         self.class_layer_id = None
         self.output_dim = None
+        self.kernel_regularizer = None
+        self.bias_regularizer = None
 
     def __str__(self):
         name = f'({self.__class__.__name__})'  # e.g: (Dense)
@@ -41,6 +43,14 @@ class Layer():
     def forward(self, a):
         '''The forward bethod of the base layer passes the activation along.'''
         return a
+
+    def loss_from_regularizers(self, batch_size):
+        loss = 0
+        if self.kernel_regularizer:
+            loss += self.kernel_regularizer.loss()
+        if self.bias_regularizer:
+            loss += self.bias_regularizer.loss()
+        return loss / batch_size
 
     @property
     def name(self):

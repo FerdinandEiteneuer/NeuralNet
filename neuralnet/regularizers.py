@@ -3,7 +3,6 @@ import numpy as np
 class Regularizer:
 
     def __call__(self, layer, param_id):
-
         self.layer = layer
         self.param_id = param_id
         return self
