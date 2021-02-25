@@ -71,7 +71,7 @@ class BaseNetwork():
     def __len__(self):
         return len(self._layers) - 1
 
-    def __getitem__(self, layerid):
+    def x__getitem__(self, layerid):
         print(f'requesting item: {layerid}, {type(layerid)}')
         if isinstance(layerid, (int, slice)):
             return self._layers[layerid]
@@ -80,6 +80,18 @@ class BaseNetwork():
                 if layer.name == layerid:
                     return layer
         raise KeyError(f'could not find layer {layerid} in model with names {[l.name for l in self]}')
+
+
+    def __getitem__(self, layerid):
+        print(f'requesting item: {layerid}, {type(layerid)}')
+        try:
+            return self._layers[layerid]
+        except TypeError:
+            for layer in self._layers[1:]:
+                if layer.name == layerid:
+                    return layer
+            else:
+               raise KeyError(f'could not find layer {layerid} in model with names {[l.name for l in self]}')
 
     def __iter__(self):
         for layer in self._layers[1:]:
