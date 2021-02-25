@@ -72,7 +72,14 @@ class BaseNetwork():
         return len(self._layers) - 1
 
     def __getitem__(self, layerid):
-        return self._layers[layerid]
+        print(f'requesting item: {layerid}, {type(layerid)}')
+        if isinstance(layerid, (int, slice)):
+            return self._layers[layerid]
+        else:
+            for layer in self._layers[1:]:
+                if layer.name == layerid:
+                    return layer
+        raise KeyError(f'could not find layer {layerid} in model with names {[l.name for l in self]}')
 
     def __iter__(self):
         for layer in self._layers[1:]:
@@ -112,7 +119,6 @@ class BaseNetwork():
             if isinstance(layer, Conv2D) and isinstance(prev_layer, Conv2D):
                 layer.previous_filters = prev_layer.filters
 
-        print(f'adding {layer=} with class_layer_id {layer.class_layer_id}')
 
     def trainable_layers(self):
         for layer in self:
@@ -141,7 +147,7 @@ class Sequential(BaseNetwork):
                              'It can not be deduced by previous layers.')
 
         for layer in self[2:]:
-            print(f'preparing {layer=} with {next_input_shape=}')
+            print(f'preparing {layer.name} with shape {next_input_shape}')
             next_input_shape = layer.prepare_params(next_input_shape)
 
         self.optimizer = optimizer.prepare_params(self)
@@ -224,7 +230,6 @@ class Sequential(BaseNetwork):
 
 
     def fit(self, x, y, epochs=1, batch_size=128, validation_data=None, gradients_to_check_each_epoch=None, verbose=True):
-
         ytrain_labels = np.argmax(y, axis=0)
         Ntrain = x.shape[-1]
 

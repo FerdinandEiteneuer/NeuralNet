@@ -134,7 +134,7 @@ class Conv2D(Layer):
 
 
     def backward_step(self, a_next, w_prev, error_prev):
- 
+        pass
 
 
     def grads(self, a_prev, N):
