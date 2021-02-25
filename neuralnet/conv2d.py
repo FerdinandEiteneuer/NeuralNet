@@ -17,8 +17,8 @@ class Flatten(Layer):
         self.output_dim = (np.product(input_shape), )
         return self.output_dim
 
-    def backward_step(self, error):
-        return error.reshape(*self.input_shape, -1)
+    def backward_step(self, a_next, w_prev, error_prev):
+        return error_prev.reshape(*self.input_shape, -1)
 
 
 class Conv2D(Layer):
@@ -60,7 +60,7 @@ class Conv2D(Layer):
             raise ValueError(f'invalid padding: {padding}, must be one of "same" or "valid".')
 
         #pad only height and width (and not channels, trainexamples)
-        self.pads = ((self.p, self.p),(self.p, self.p),(0,0), (0,0))
+        self.pads = ((self.p, self.p), (self.p, self.p), (0,0), (0,0))
 
         if self.kernel_size % 2 == 0:
             #TODO  if this error is removed, introduce the floor function to self.p
@@ -85,12 +85,14 @@ class Conv2D(Layer):
         self.b = np.zeros((f, 1))
         self.db = np.zeros(self.b.shape)
 
-        if self.padding != 'valid':
-            raise NotImplementedError
-
-
         output_height = int( (self.prev_height + 2*self.p - self.kernel_size)/self.stride + 1 )
         output_width = int( (self.prev_width + 2*self.p - self.kernel_size)/self.stride + 1 )
+
+
+        if self.padding == 'same':
+            assert output_height == self.prev_height
+            assert output_width == self.prev_width
+
         self.output_dim = (output_height, output_width, f)
         return self.output_dim
 
@@ -134,7 +136,8 @@ class Conv2D(Layer):
 
 
     def backward_step(self, a_next, w_prev, error_prev):
-        pass
+       pass
+
 
 
     def grads(self, a_prev, N):
@@ -159,12 +162,6 @@ class Conv2D(Layer):
     def get_error(self, back_err):
         self.error = back_err * self.g(self.z, derivative=True)
         return self.error
-
-    def backward(self, verbose=True, mode=2):
-        if mode == 1:
-            return self.backward1(verbose)
-        elif mode == 2:
-            return self.backward2(verbose)
 
 
     def backward1(self, verbose=False):

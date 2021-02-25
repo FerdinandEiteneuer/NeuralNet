@@ -26,6 +26,8 @@ class BaseNetwork():
         self._flatten_layers = 0
 
         self._layers = [Layer(layer_id=0)]
+        self.w = None
+        self.b = None
 
         if layers:
             for layer in layers:
@@ -71,19 +73,7 @@ class BaseNetwork():
     def __len__(self):
         return len(self._layers) - 1
 
-    def x__getitem__(self, layerid):
-        print(f'requesting item: {layerid}, {type(layerid)}')
-        if isinstance(layerid, (int, slice)):
-            return self._layers[layerid]
-        else:
-            for layer in self._layers[1:]:
-                if layer.name == layerid:
-                    return layer
-        raise KeyError(f'could not find layer {layerid} in model with names {[l.name for l in self]}')
-
-
     def __getitem__(self, layerid):
-        print(f'requesting item: {layerid}, {type(layerid)}')
         try:
             return self._layers[layerid]
         except TypeError:
