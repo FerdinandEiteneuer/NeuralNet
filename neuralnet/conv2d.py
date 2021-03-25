@@ -9,6 +9,7 @@ class Flatten(Layer):
         super().__init__()
 
     def forward(self, a):
+        self.a = a
         nb_examples = a.shape[-1]
         return a.reshape(-1, nb_examples)
 

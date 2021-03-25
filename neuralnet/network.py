@@ -170,11 +170,13 @@ class Sequential(BaseNetwork):
     def backpropagation(self, x, y, verbose=True):
 
         error_prev = self.backprop_last_layer(x, y)
+        print('err prev from last layer backprop', error_prev.shape)
 
         for l in range(len(self)-1, 0, -1):
 
             a_next = self[l - 1].a
             w_prev = self[l + 1].w
+            print(f'got error_prev for {self[l]}')
 
             error_prev = self[l].backward_step(a_next, w_prev, error_prev)
 

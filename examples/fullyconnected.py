@@ -47,8 +47,8 @@ if __name__ == '__main__':
     model.fit(
         x=xtrain,
         y=ytrain,
-        epochs=8,
-        batch_size=500,
+        epochs=1,
+        batch_size=1000,
         validation_data=(xtest, ytest),
         gradients_to_check_each_epoch=3,
         verbose=True
