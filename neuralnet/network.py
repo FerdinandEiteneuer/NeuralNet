@@ -68,7 +68,7 @@ class BaseNetwork():
         return s
 
     def __call__(self, a):
-        return self.forward_step(a)
+        return self.forward(a)
 
     def __len__(self):
         return len(self._layers) - 1
@@ -149,89 +149,63 @@ class Sequential(BaseNetwork):
                              'It can not be deduced by previous layers.')
 
         for layer in self[2:]:
-            print(f'preparing {layer.name} with shape {next_input_shape}')
+            #print(f'preparing {layer.name} with shape {next_input_shape}')
             next_input_shape = layer.prepare_params(next_input_shape)
 
         self.optimizer = optimizer.prepare_params(self)
 
 
-    def forward_step(self, a):
-        self[0].a = a  # layer #0 is just there for saving the training data. it gets accessed in the last iteration in the loop in backpropagation during a_next = self[l - 1].a
+    def forward(self, a, mode='test'):
+        #self[0].a = a  # layer #0 is just there for saving the training data. it gets accessed in the last iteration in the loop in backpropagation during a_next = self[l - 1].a
         for layer in self:
-            a = layer(a)
+            a = layer(a, mode)
         return a
 
 
     def train_on_batch(self, x, y):
-        self.forward_step(x)
-        self.backpropagation(x, y)
+
+        self.forward(x, mode='train')
+        self.backward(x, y)
 
 
-    def backpropagation(self, x, y, verbose=True):
+    def backward(self, x, y, verbose=0):
 
-        error_prev = self.backprop_last_layer(x, y)
-        print('err prev from last layer backprop', error_prev.shape)
+        final_layer = self[-1]
 
-        for l in range(len(self)-1, 0, -1):
-
-            a_next = self[l - 1].a
-            w_prev = self[l + 1].w
-            print(f'got error_prev for {self[l]}')
-
-            error_prev = self[l].backward_step(a_next, w_prev, error_prev)
-
-
-    def backprop_last_layer(self, x, y):
-        '''
-        calculates the error for the last layer.
-        It is a little bit special as it involves
-        the cost function, so do it in its own function.
-        '''
-
-        layer = self[-1]
-
-        derivative_loss = self.derivative_loss_fct(
-            ypred=layer.a,
+        dout = self.derivative_loss_fct(
+            ypred=final_layer.a,
             ytrue=y,
             average_examples=False
         )
 
-        derivative_layer = layer.g(
-            z=layer.z,
-            derivative=True
-        )
-
-        if layer.g is softmax:
-            deltaL = np.einsum('in,jin->jn', derivative_loss, derivative_layer)
-        else:
-            deltaL = derivative_layer * derivative_loss
-
-        batch_size = x.shape[-1]
-
-        layer.dw = 1 / batch_size * np.dot(deltaL, self[-2].a.T)
-        layer.db = 1 / batch_size * np.sum(deltaL, axis=1, keepdims=True)
-
-        if layer.kernel_regularizer:
-            layer.dw += 1 / batch_size * self.kernel_regularizer.derivative()
-        if layer.bias_regularizer:
-            layer.db += 1 / batch_size * self.bias_regularizer.derivative()
-
-        return deltaL
+        batch_size = y.shape[-1]
+        dout /= batch_size
 
 
-    def get_loss(self, x, ytrue, average_examples=True, verbose=False):
+        if verbose: print('err prev from last layer backprop', dout.shape)
 
-        ypred = self(x)
+        for l in range(len(self), 0, -1):
+
+            dout = self[l].backward(dout)
+            if verbose: print(f'got error_prev for {self[l]}, {dout.shape=}')
+
+
+    def get_loss(self, x, ytrue, average_examples=True, mode='test', verbose=False):
+
+        ypred = self.forward(x, mode)
         loss = self.loss_fct(ypred, ytrue, average_examples=average_examples)
 
-        batch_size = ytrue.shape[-1]
-        regularizer_loss = sum(layer.loss_from_regularizers(batch_size) for layer in self)
+        regularizer_loss = sum(layer.loss_from_regularizers() for layer in self)
 
         if verbose:
             print(f'{loss=:.4e}, {regularizer_loss=:.4e}')
 
         return loss + regularizer_loss
 
+    def fix_dropout_seed(self):
+        seed = np.random.randint(2**32 - 1)
+        for layer in self:
+            layer.dropout_seed = seed
 
     def fit(self, x, y, epochs=1, batch_size=128, validation_data=None, gradients_to_check_each_epoch=None, verbose=True):
         ytrain_labels = np.argmax(y, axis=0)
@@ -245,33 +219,41 @@ class Sequential(BaseNetwork):
         else:
             val_printout = ''
 
-        if not gradients_to_check_each_epoch:
-            grad_printout = ''
+        #if not gradients_to_check_each_epoch:
+        grad_printout = ''
 
         for epoch in range(1, epochs + 1):
 
             losses = []
-            self.optimizer.lr *= 0.993
+            self.optimizer.lr *= 1
 
             minibatches = misc.minibatches(x, y, batch_size=batch_size)
             for m, minibatch in enumerate(minibatches):
+
+
+                if gradients_to_check_each_epoch and m == 0:
+                    #self.fix_dropout_seed()
+                    pass
 
                 self.train_on_batch(*minibatch)
 
                 losses.append(self.get_loss(*minibatch))
 
                 # important: do gradient checking before weights are changed!
-                if gradients_to_check_each_epoch and m == 1:
-                    goodness = self.gradient_checks(*minibatch, eps=10**(-6), checks=3)
-                    if goodness:
-                        grad_printout = f'gradcheck: {goodness:.3e}'
+                if gradients_to_check_each_epoch and m == 0:
+                    if gradients_to_check_each_epoch == 'all':
+                        self.complete_gradient_check(*minibatch)
                     else:
-                        grad_printout = 'gradcheck n/a, all grads are zero'
+                        goodness = self.gradient_checks(*minibatch, eps=10**(-6), checks=gradients_to_check_each_epoch)
+                        grad_printout = f'gradcheck: {goodness:.3e}'
 
+
+                #self.complete_gradient_check(*minibatch)
                 self.optimizer.update_weights()
 
 
             a_train = self(x)
+            #print(a_train)
             ytrain_pred = np.argmax(a_train, axis=0)
             train_correct = np.sum(ytrain_pred == ytrain_labels)
             loss = np.mean(losses)
@@ -297,18 +279,18 @@ class Sequential(BaseNetwork):
                df(x)/dx = (f(x+eps) - f(x-eps)/2/eps
         '''
 
-        cost = 0
+        gradient_manual = 0
         w_original = self[layer_id].w[weight_idx]
 
         for sign in [+1, -1]:
 
             self[layer_id].w[weight_idx] = w_original + sign * eps # change weight
-            cost += sign * self.get_loss(x, ytrue, average_examples=True)
+            gradient_manual += sign * self.get_loss(x, ytrue, mode='gradient', average_examples=True)
 
         self[layer_id].w[weight_idx] = w_original  # restore weight
 
 
-        gradient_manual = cost / (2*eps)
+        gradient_manual /= (2*eps)
         return gradient_manual
 
 
@@ -336,19 +318,16 @@ class Sequential(BaseNetwork):
             grads[check] = gradient
             grads_backprop[check] = self[layer_id].dw[weight_idx]
 
-        n = np.linalg.norm
-        normed_sum = n(grads) + n(grads_backprop)
-        if normed_sum == 0:
-            goodness = None
-        else:
-            goodness = n(grads - grads_backprop) / normed_sum
+        goodness = misc.rel_error(grads, grads_backprop)
 
         return goodness
 
 
     def complete_gradient_check(self, x, y, eps=10**(-6)):
         ''' Checks the gradient for every weight in the network.'''
-        self.grads_ = []
+        self._gradchecks = []
+        worst_check = -np.inf
+
         for layer in self:
 
             gradient_manual = np.zeros(layer.w.shape)
@@ -366,14 +345,9 @@ class Sequential(BaseNetwork):
 
                 gradient_manual[idx] = gradient
 
-            numerator = np.linalg.norm(gradient_manual - layer.dw)
-            denominator = np.linalg.norm(gradient_manual) +  np.linalg.norm(layer.dw)
+            #print(gradient_manual)
+            #print(f'grad backprop:\n{layer.dw}\ngrad manual\n{gradient_manual}')
 
-            goodness = numerator / denominator
-            self.n= numerator
-            self.d=denominator
-            self.grads_.append(gradient_manual)
-            print(f'backprop err layer {layer.layer_id}: {goodness=}')
-
-
-
+            self._gradchecks.append(gradient_manual)
+            goodness = misc.rel_error(gradient_manual, layer.dw)
+            print(f'backprop err layer {layer.name}: {goodness=}')

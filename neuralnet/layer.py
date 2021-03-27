@@ -4,7 +4,7 @@ import abc
 
 
 class Layer():
-    ''' Base Layer'''
+    """ Base Layer"""
 
     _ids = itertools.count(0)
 
@@ -14,8 +14,15 @@ class Layer():
         self.output_dim = None
         self.kernel_regularizer = None
         self.bias_regularizer = None
+        self.batch_size = None
+        self.dropout_seed = 0
+        self.cache = {}
 
     def __str__(self):
+        """
+        possible result of __str__:
+        dense_1 (Dense)              (10, None)                 110
+        """
         name = f'({self.__class__.__name__})'  # e.g: (Dense)
         lower_with_id = f'{self.__class__.__name__.lower()}_{self.class_layer_id}'  # e.g: dense_1
 
@@ -29,28 +36,23 @@ class Layer():
 
         output_dim = tuple(self.output_dim) + (None, )
 
-        #s = f'{lower_with_id + " " + name:29}{str(output_dim):26}{n_parameters:<}'
         s = f'{self.name + " " + name:29}{str(output_dim):26}{n_parameters:<}'
-
-        #possible result of __str__:
-        #dense_1 (Dense)              (10, None)                 110
-
         return s
 
-    def __call__(self, a):
-        return self.forward(a)
+    def __call__(self, a, mode='test'):
+        return self.forward(a, mode)
 
     def forward(self, a):
-        '''The forward bethod of the base layer passes the activation along.'''
+        """The forward bethod of the base layer passes the activation along."""
         return a
 
-    def loss_from_regularizers(self, batch_size):
+    def loss_from_regularizers(self):
         loss = 0
         if self.kernel_regularizer:
             loss += self.kernel_regularizer.loss()
         if self.bias_regularizer:
             loss += self.bias_regularizer.loss()
-        return loss / batch_size
+        return loss
 
     @property
     def name(self):

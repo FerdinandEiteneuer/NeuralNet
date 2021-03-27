@@ -8,8 +8,8 @@ def glorot_uniform(shape):
     bound = 6.0/np.sqrt(output_dim + input_dim)
     return np.random.uniform(-bound, bound, size=shape)
 
-def normal(shape):
-    return 0.01 * np.random.normal(size=shape)
+def normal(shape, scale=0.001):
+    return scale * np.random.normal(size=shape)
 
 def integers(shape):
     return np.random.randint(0, 5, size=shape)
@@ -18,7 +18,7 @@ def xavier(shape):
     raise NotImplementedError
 
 
-def create(initializer, shape):
+def create(initializer, shape, **kwargs):
     '''
     TODO: is this good programming style?
     '''
@@ -30,12 +30,9 @@ def create(initializer, shape):
         else:
             raise ValueError(f'no kernel initializer named {initializer}')
 
-    elif callable(initializer):
+    elif not callable(initializer):
 
-        sig = inspect.signature(initializer)
-
-        if len(sig.parameters) != 1:
-            raise ValueError(f'{initializer} is not a valid kernel initializer')
+        raise ValueError(f'{initializer} is not a valid kernel initializer')
 
 
-    return initializer(shape)
+    return initializer(shape, **kwargs)

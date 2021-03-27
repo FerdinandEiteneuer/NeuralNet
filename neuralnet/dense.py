@@ -3,6 +3,7 @@ from functools import wraps
 
 from .layer import Layer
 from . import kernel_initializers
+from . import activations
 
 class Dense(Layer):
     def __init__(
@@ -13,6 +14,7 @@ class Dense(Layer):
             kernel_regularizer=None,
             bias_regularizer=None,
             input_shape=None,
+            p_dropout=1,
             verbose=False):
 
         super().__init__()
@@ -30,6 +32,8 @@ class Dense(Layer):
         self.kernel_regularizer = kernel_regularizer(self, 'w') if kernel_regularizer else None
         self.bias_regularizer = bias_regularizer(self, 'b') if bias_regularizer else None
 
+        assert 0 < p_dropout <= 1, f'{p_dropout=} is not in (0,1]. Note: p_dropout is the probabilty to keep a neuron'
+        self.p_dropout = p_dropout
 
     def prepare_params(self, input_shape=None):
         if input_shape:
@@ -45,28 +49,51 @@ class Dense(Layer):
         return self.output_dim
 
 
-    def forward(self, a):
-        self.z = np.dot(self.w, a) + self.b
+    def forward(self, x, mode='test'):
+
+        self.batch_size = x.shape[-1]
+
+        self.x = x
+        self.z = np.dot(self.w, x) + self.b
+
         self.a = self.g(self.z)
+
+        if mode == 'train':
+            #np.random.seed(self.dropout_seed)
+            p = self.p_dropout
+            self.dropout_mask = (np.random.rand(*self.a.shape) < p) / p
+            self.a *= self.dropout_mask
+        elif mode == 'gradient':
+            self.a *= self.dropout_mask  # just reuse the original dropout mask used for backprop
+        elif mode == 'test':
+            pass
+
         return self.a
 
 
-    def backward_step(self, a_next, w_prev, error_prev):
-        batch_size = a_next.shape[-1]
+    def backward(self, dout, verbose=1):
 
-        derivative = self.g(self.z, derivative=True)
-        error = np.dot(w_prev.T, error_prev) * derivative
+        #print(f'in backward {self.name}:', np.all(self.dropout_mask == 1))
+        dout = self.dropout_mask * dout
 
-        self.dw = 1 / batch_size * np.dot(error, a_next.T)
-        self.db = 1 / batch_size * np.sum(error, axis=1, keepdims=True)
+        dlayer = self.g(self.z, derivative=True)
+
+        if self.g is activations.softmax:
+            dout = np.einsum('in,jin->jn', dout, dlayer)
+        else:
+            dout = dout * dlayer
+
+        self.dw = np.dot(dout, self.x.T)
+        self.db = np.sum(dout, axis=1, keepdims=True)
+
 
         if self.kernel_regularizer:
-            self.dw += 1 / batch_size * self.kernel_regularizer.derivative()
+            self.dw += self.kernel_regularizer.derivative()
             assert np.all(self.kernel_regularizer.param == self.w)
 
 
         if self.bias_regularizer:
-            self.db += 1 / batch_size * self.bias_regularizer.derivative()
+            self.db += self.bias_regularizer.derivative()
 
-        return error
-
+        dx = np.dot(self.w.T, dout)  # creating new upstream derivative
+        return dx

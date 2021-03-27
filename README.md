@@ -5,9 +5,11 @@ This is a little project for myself, to understand the inner workings of neural 
 ## features
 
 * fully connected layer
-* commonly used activation functions and loss functions
+* activation functions (tanh, sigmoid, relu, lrelu, softmax)
+* loss functions (mse, crossentropy)
 * gradient checking
 * sgd with momentum and nadam optimizer
+* dropout, L1, L2, L1_L2 regularizers
 * parts of the keras API are replicated
 
 ## example of the API

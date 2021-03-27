@@ -1,6 +1,7 @@
+"""
+Activation functions: sigmoid, tanh, relu, lrelu, softmax
+"""
 import numpy as np
-from functools import wraps
-#blablabla
 
 def sigmoid(z, derivative=False):
     sigma = 1/(1+np.exp(-z))
@@ -9,11 +10,19 @@ def sigmoid(z, derivative=False):
     else:
         return sigma * (1 - sigma)
 
+def tanh(z, derivative=False):
+    if not derivative:
+        return np.tanh(z)
+    else:
+        return 1 - np.tanh(z) ** 2
+
+
 def relu(z, derivative=False):
     if not derivative:
         return z * (z > 0)
     else:
         return 1 * (z > 0)
+
 
 def lrelu(alpha=0.1):
     assert 0 <= alpha <= 1, f'alpha must be between 0 and 1, but received: {alpha=}'
@@ -24,6 +33,15 @@ def lrelu(alpha=0.1):
             return 1 * (z > 0) + alpha * (z <= 0)
 
     return lrelu_
+
+
+def prelu(z):
+    raise NotImplementedError
+
+
+def selu(z):
+    raise NotImplementedError
+
 
 def softmax(z, derivative=False):
     nb_examples = z.shape[-1]
@@ -50,29 +68,11 @@ def softmax(z, derivative=False):
 
         return derivative_softmax
 
-def binary_crossentropy(z, derivative=False):
-    if not derivative:
-        pass
-    else:
-        pass
-
-def tanh(z, derivative=False):
-    if not derivative:
-        return np.tanh(z)
-    else:
-        return 1 - np.tanh(z) ** 2
-
 def linear(z, derivative=False):
     if not derivative:
         return z
     else:
         return np.ones(z.shape)
-
-def prelu(z):
-    raise NotImplementedError
-
-def selu(z):
-    raise NotImplementedError
 
 if __name__ == '__main__':
 

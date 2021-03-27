@@ -12,9 +12,12 @@ class Regularizer:
         try:
             return getattr(self.layer, self.param_id)
         except AttributeError as e:
-            print(f'ERROR: regularizer {self.__class__.__name__} could not access param {self.param_id} from layer with layer id {self.layer.layer_id}')
+            print(f'ERROR: regularizer {self.__class__.__name__} could not access param {self.param_id} from layer {self.layer.layer_id} ({self.layer.name})')
             raise
 
+    @property
+    def batch_size(self):
+        return self.layer.batch_size
 
 class L2(Regularizer):
 
@@ -22,10 +25,10 @@ class L2(Regularizer):
         self.l2 = l2
 
     def loss(self):
-        return self.l2 * np.sum(self.param**2)
+        return 1 / self.batch_size * (self.l2 * np.sum(self.param**2))
 
     def derivative(self):
-        return 2 * self.l2 * self.param
+        return 1 / self.batch_size * (2 * self.l2 * self.param)
 
 
 class L1(Regularizer):
@@ -34,10 +37,10 @@ class L1(Regularizer):
         self.l1 = l1
 
     def loss(self):
-        return self.l1 * np.sum(np.abs(self.param))
+        return 1 / self.batch_size * (self.l1 * np.sum(np.abs(self.param)))
 
-    def derivative(self=None):
-        return self.l1 * np.sign(self.param)
+    def derivative(self):
+        return 1 / self.batch_size * (self.l1 *  np.sign(self.param))
 
 
 class L1_L2(L1, L2):

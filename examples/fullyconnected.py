@@ -20,23 +20,23 @@ np.random.seed(123)  # reproducibility
 
 if __name__ == '__main__':
 
-    xtrain, xtest, ytrain, ytest = load_mnist.load()
+    xtrain, xtest, ytrain, ytest = load_mnist.load(fraction_of_data=1)
 
-    xtrain = np.resize(xtrain, (28**2, 60000))
-    xtest = np.resize(xtest, (28**2, 10000))
+    xtrain = np.reshape(xtrain, (28**2, -1))
+    xtest = np.reshape(xtest, (28**2, -1))
 
     input_dim = xtrain.shape[0]
     output_dim = ytrain.shape[0]
 
     model = Sequential()
 
-    model.add(Dense(200, tanh, input_shape=input_dim, kernel_initializer=normal))
+    model.add(Dense(200, tanh, input_shape=input_dim, kernel_initializer=normal, p_dropout=0.5))
     model.add(Dense(100, tanh, kernel_initializer=normal, kernel_regularizer=L1_L2(1e-4, 1e-3)))
     model.add(Dense(output_dim, softmax))
 
 
     sgd = SGD(learning_rate=2*10**(-1), bias_correction=True, momentum=0.9)
-    nadam = Nadam(learning_rate=10**(-3), beta_1=0.9, beta_2=0.999, eps=10**(-8))
+    nadam = Nadam(learning_rate=10**(-2), beta_1=0.9, beta_2=0.999, eps=10**(-8))
 
     model.compile(loss = crossentropy, optimizer=nadam)
     print(model.summary())
@@ -47,8 +47,8 @@ if __name__ == '__main__':
     model.fit(
         x=xtrain,
         y=ytrain,
-        epochs=1,
-        batch_size=1000,
+        epochs=100,
+        batch_size=500,
         validation_data=(xtest, ytest),
         gradients_to_check_each_epoch=3,
         verbose=True

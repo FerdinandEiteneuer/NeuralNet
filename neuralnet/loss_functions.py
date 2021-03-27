@@ -16,6 +16,8 @@ class crossentropy:
 
     @staticmethod
     def derivative(ypred, ytrue, average_examples=False):
+
+        ypred[ypred == 0] = 1e-6
         if average_examples:
             N = ypred.shape[1]  # num datapoints
             der_loss = - 1 / N * np.sum(ytrue / ypred)
@@ -32,7 +34,7 @@ class mse:
         loss_per_example = np.sum(diff**2, axis=0, keepdims=True)
         nb_examples = ytrue.shape[1]
         if average_examples:
-            total_loss = np.sum(loss_per_example)/nb_examples
+            total_loss = np.sum(loss_per_example) / nb_examples
             assert total_loss.shape == ()
             return total_loss
         else:

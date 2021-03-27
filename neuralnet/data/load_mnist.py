@@ -35,13 +35,12 @@ def _reduce_data(xtrain, xtest, ytrain, ytest, factor=0.2):
 
     return xtrain, xtest, ytrain, ytest
 
-def one_hot(y):
-    dim = 10
+def one_hot(y, dim=10):
     matrix = np.eye(dim, dtype=DTYPE)[y]
     matrix = matrix.T
     return matrix
 
-def load(fraction_of_data = 1):
+def load(fraction_of_data=1):
 
     datadir = os.path.dirname(__file__)
     path = os.path.join(datadir, 'mnist.npz')
