@@ -1,25 +1,33 @@
+import itertools
+
 import numpy as np
 
 from .layer import Layer
 from . import kernel_initializers
+
+def product(*args):
+    ranges = map(range, args)
+    return itertools.product(*ranges)
+
 
 class Flatten(Layer):
 
     def __init__(self):
         super().__init__()
 
-    def forward(self, a):
-        self.a = a
+    def forward(self, a, mode='test'):
+        self.x = a
         nb_examples = a.shape[-1]
-        return a.reshape(-1, nb_examples)
+        self.a = a.reshape(-1, nb_examples)
+        return self.a
 
     def prepare_params(self, input_shape):
         self.input_shape = input_shape
         self.output_dim = (np.product(input_shape), )
         return self.output_dim
 
-    def backward_step(self, a_next, w_prev, error_prev):
-        return error_prev.reshape(*self.input_shape, -1)
+    def backward(self, dout):
+        return dout.reshape(*self.input_shape, -1)
 
 
 class Conv2D(Layer):
@@ -56,7 +64,7 @@ class Conv2D(Layer):
         if self.padding == 'valid':
             self.p = 0
         elif self.padding == 'same':
-            self.p = (kernel_size - 1) / 2
+            self.p = int( (kernel_size - 1) / 2)
         else:
             raise ValueError(f'invalid padding: {padding}, must be one of "same" or "valid".')
 
@@ -89,7 +97,6 @@ class Conv2D(Layer):
         output_height = int( (self.prev_height + 2*self.p - self.kernel_size)/self.stride + 1 )
         output_width = int( (self.prev_width + 2*self.p - self.kernel_size)/self.stride + 1 )
 
-
         if self.padding == 'same':
             assert output_height == self.prev_height
             assert output_width == self.prev_width
@@ -97,13 +104,14 @@ class Conv2D(Layer):
         self.output_dim = (output_height, output_width, f)
         return self.output_dim
 
-    def forward(self, a):
+    def forward(self, x, mode='test'):
 
         print(f'forward {self.name}')
-        print(f'{a.shape=}')
+        print(f'{x.shape=}')
+        self.x = x
 
         if self.padding == 'same':
-            a = np.pad(a, pad_width=self.pads, mode='constant', constant_values=0)
+            a = np.pad(x, pad_width=self.pads, mode='constant', constant_values=0)
 
         nb_examples = a.shape[-1]
 
@@ -112,153 +120,92 @@ class Conv2D(Layer):
 
         self.z = np.zeros((height, width, self.filters, nb_examples))
 
-        a = a[:,:,:,np.newaxis,:] #(height, width, c_prev, m) -> (height, width, c_prev, AXIS, m)
+        #a = a[:,:,:,np.newaxis,:] #(height, width, c_prev, m) -> (height, width, c_prev, AXIS, m)
         W = self.w[...,np.newaxis] #(f, f, c_prev, c) -> (f, f, c_prev, c, AXIS)
 
         k = self.kernel_size
 
-        for h in range(height):
-            for w in range(width):
-                image_part = a[h: h + k, w: w + k, ...]
+        for h, w in product(height, width):
+            image_part = a[h: h + k, w: w + k, ...]
 
-                product = image_part * W
-                #print(f'product = {product.shape}')
-
-                conv = np.sum(image_part * W, axis=(0, 1, 2))
-                #print(f'{image_part.shape=}')
-                #print(f'{conv.shape=}')
-                #print(f'put into {self.z[h, w, ...].shape} z')
-                self.z[h, w, ...] = conv + self.b
+            #product = image_part * W
+            #print(f'product = {product.shape}')
+            
+            conv = np.einsum('ijkm,ijkn', self.w, image_part)
+            #conv = np.sum(image_part * W, axis=(0, 1, 2))
+            #print(f'{image_part.shape=}')
+            #print(f'{conv.shape=}')
+            #print(f'put into {self.z[h, w, ...].shape} z')
+            self.z[h, w, ...] = conv + self.b
 
         self.a = self.g(self.z)
 
         print(f'forward {self.name} done')
         return self.a
 
+    def backward(self, dout):
+        self.dw = self.get_dw(dout)
+        self.dx = self.get_dx(dout)
+        self.db = np.sum(dout, axis=(0,1,3))
+        return self.dx, self.dw, self.db
 
-    def backward_step(self, a_next, w_prev, error_prev):
-       pass
+    def get_dx(self, dout):
 
+        # pad dout
+        dout_p = 1
+        dout_pads = [(dout_p, dout_p), (dout_p, dout_p), (0, 0), (0, 0)]
+        dout_pad = np.pad(dout, dout_pads, mode='constant', constant_values=0)
+        dout_pad = dout_pad[:, :,  np.newaxis, :, :]      # (H, W, 1, F, N)
 
+        # w shape = (HH, WW, C, F)
+        flipped_w = self.w[::-1, ::-1, :, :, np.newaxis]  # (HH, WW, C, F, 1)
 
-    def grads(self, a_prev, N):
-        I, J, C, N = self.error.shape
-        self.dw = np.zeros(self.w.shape)
-        self.db = np.zeros(self.b.shape)
+        H, W = self.x.shape[:2]
+        HH, WW = self.w.shape[:2]
 
-        error = self.error[:,:,np.newaxis,:,:]
+        dx = np.zeros(self.x.shape)
 
-        for k in range(self.f):
-            for l in range(self.f):
-                axis1 = self.s * np.arange(I) + k
-                axis2 = self.s * np.arange(J) + l
-                a_prev_part = a_prev[np.ix_(axis1, axis2)]
-                a_prev_part = a_prev_part[:,:,:,np.newaxis,:]
+        for h, w in product(H, W):
 
-                self.dw[k,l,:,:] = 1./N * np.sum(error * a_prev_part, axis = (0,1,4))
+            dout_part = dout_pad[h:h+HH, w:w+WW, ...]
+            conv = flipped_w * dout_part
+            dx[h, w] = np.sum(conv, axis=(0, 1, 3))  # remaining axes: N, C
 
-        self.db = 1./N * np.sum(self.error, axis=(0,1,3), keepdims=True)
+        return dx
 
+    def get_dw(self, dout):
+        dw = np.zeros(self.w.shape)
 
-    def get_error(self, back_err):
-        self.error = back_err * self.g(self.z, derivative=True)
-        return self.error
+        H, W = self.x.shape[:2]
+        HH, WW = self.w.shape[:2]
 
+        x_pad = np.pad(self.x, self.pads, mode='constant', constant_values=0)
 
-    def backward1(self, verbose=False):
-        height = width = self.s*(self.z.shape[0] - 1) - 2*self.p + self.f #this is the shape of previous activation
-        channels = self.c_prev
-        n = self.z.shape[3]
-        self.backerr = np.zeros((height, width, channels, n))
+        for h, w in product(HH, WW):
+            x_part = x_pad[h:h+H, w:w+W, ...]
 
-        mins, maxs = self.lower_upper_summation_indices(height, self.f, self.s)
-        if verbose: print('\tbackward: using the following summations\n\t\tmins', mins, '\n\t\tmaxs', maxs, '\n\t\terror shape used:', self.error.shape, 'backerr shape', self.backerr.shape)
-        for h in range(height):
-            for w in range(width):
-                low = np.arange(mins[h], maxs[h])
-                up = np.arange(mins[w], maxs[w])
-                if verbose: print('\t\th=%i w=%i' % (h, w), 'low', low, 'up', up)
-                if verbose: print('error part')
-                if verbose: print(self.error.shape)
-                error_part = self.error[np.ix_(low,up)]#self.error[low,up,:,:]
-                if verbose: print(error_part.shape)
-                error_part = error_part[:,:,np.newaxis,:,:]
-                if verbose: print(error_part.shape)
+            print('dout   ', dout.shape)
+            print('x_part ', x_part.shape)
+            conv = np.einsum('ijuw,ijvw', x_part, dout)
 
-                axis1 = h - self.s * low
-                axis2 = w - self.s * up
-                if verbose: print('W part')
-                if verbose: print(self.w.shape)
-                W_part = self.w[np.ix_(axis1, axis2)]
-                if verbose: print(W_part.shape)
-                W_part = W_part[...,np.newaxis]
-                if verbose: print(W_part.shape)
+            print(conv.shape)
+            dw[h,w, ...] = conv
+        return dw
 
-                if verbose: print('error_part', error_part.shape,'*', 'W_part', W_part.shape)
-                back_part = np.sum(error_part * W_part, axis=(0,1,3))
-                if verbose: print('back_part = error_part*W_part shape ',back_part.shape)
-                self.backerr[h,w,:,:] = back_part
-        if verbose: print('\tcalculated back_err_%s for next shallow layer. shape:' % (self.l),  self.backerr.shape)
-        return self.backerr
-
-    def backward2(self, verbose=False):
-        height = width = self.s*(self.z.shape[0] - 1) - 2*self.p + self.f #this is the shape of previous activation
-        channels = self.c_prev
-        n = self.z.shape[3]
-        self.backerr = np.zeros((height, width, channels, n))
-
-        I_max, J_max, C_max = self.z.shape[:3]
-
-        for h in range(height):
-            for w in range(width):
-                I = np.arange(I_max)
-                J = np.arange(J_max)
-                if verbose: print('h:%i, w:%s' % ( h,w))
-                idx_I = h - self.s * I
-                mask_I = idx_I > 0
-
-                idx_J = w - self.s * J
-                mask_J = idx_J > 0
-
-
-                idx_I = idx_I[mask_I]
-                idx_J = idx_J[mask_J]
-                error_part = self.error[np.ix_(I[mask_I], J[mask_J])]
-                if verbose: print(error_part.shape)
-                error_part = error_part[:,:,np.newaxis,:,:]
-                if verbose: print(error_part.shape)
-
-                if verbose: print(self.w.shape, idx_I, idx_J)
-                W_part = self.w[np.ix_(idx_I, idx_J)]
-                if verbose: print(W_part.shape)
-                W_part = W_part[...,np.newaxis]
-                if verbose: print(W_part.shape)
-
-                if verbose: print('error_part', error_part.shape,'*', 'W_part', W_part.shape)
-                back_part = np.sum(error_part * W_part, axis=(0,1,3))
-                if verbose: print('back_part = error_part*W_part shape ',back_part.shape)
-                self.backerr[h,w,:,:] = back_part
-        if verbose: print('\tcalculated back_err_%s for next shallow layer. shape:' % (self.l),  self.backerr.shape)
-        return self.backerr
-
-
-
-    def lower_upper_summation_indices(self, h, f, s):
-        #lower
-        mins = []
-        for i in range(0, h):
-           mins.append(int(max(0, round((i-f+1)/float(s)))))
-
-        #upper is just shifted
-        delta = abs(f-s)
-        h_next = int((h - f)/float(s)) + 1
-        stop_at = h_next - 1
-        maxs = mins[delta:] + delta*[stop_at]
-
-        mins = np.array(mins)
-        maxs = np.array(maxs) + 1 #+1 because range(a,b) not inclusive for upper index
-        return mins, maxs
 
 
 if __name__ == '__main__':
+
     pass
+    np.random.seed(231)
+    N = 4
+    C = 3
+    H, W = 5, 5
+    F = 2
+    WW, HH = 3, 3
+
+    x = np.random.randn(C, H, W, N)
+    w = np.random.randn(F, C, WW, HH)
+    b = np.random.randn(F, 1)
+    dout = np.random.randn(F, H, W, N)  # (N, F, H, W)
+    conv_param = {'stride': 1, 'pad': 1}

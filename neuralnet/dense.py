@@ -59,19 +59,18 @@ class Dense(Layer):
         self.a = self.g(self.z)
 
         if mode == 'train':
-            #np.random.seed(self.dropout_seed)
             p = self.p_dropout
             self.dropout_mask = (np.random.rand(*self.a.shape) < p) / p
             self.a *= self.dropout_mask
         elif mode == 'gradient':
-            self.a *= self.dropout_mask  # just reuse the original dropout mask used for backprop
+            self.a *= self.dropout_mask  # need to reuse the original dropout mask used for backprop, do not create a new one!
         elif mode == 'test':
             pass
 
         return self.a
 
 
-    def backward(self, dout, verbose=1):
+    def backward(self, dout):
 
         #print(f'in backward {self.name}:', np.all(self.dropout_mask == 1))
         dout = self.dropout_mask * dout
