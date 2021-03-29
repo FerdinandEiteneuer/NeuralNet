@@ -3,6 +3,7 @@ Implementation of the numpynets
 '''
 
 from functools import partial
+from collections import defaultdict
 import itertools
 import warnings
 
@@ -10,6 +11,7 @@ import numpy as np
 
 from .layer import Layer
 from .dense import Dense
+from .dropout import Dropout
 from .conv2d import Conv2D, Flatten
 from .activations import softmax
 from . import misc
@@ -24,6 +26,7 @@ class BaseNetwork():
         self._dense_layers = 0
         self._conv_layers = 0
         self._flatten_layers = 0
+        self._dropout_layers = 0
 
         self._layers = [Layer(layer_id=0)]
         self.w = None
@@ -67,8 +70,8 @@ class BaseNetwork():
 
         return s
 
-    def __call__(self, a):
-        return self.forward(a)
+    def __call__(self, a, mode='test'):
+        return self.forward(a, mode=mode)
 
     def __len__(self):
         return len(self._layers) - 1
@@ -108,6 +111,9 @@ class BaseNetwork():
             layer.class_layer_id = self._flatten_layers
             self._flatten_layers += 1
 
+        elif isinstance(layer, Dropout):
+            layer.class_layer_id = self._dropout_layers
+            self._dropout_layers += 1
         else:
             raise TypeError(f'Do not know how to handle {layer=}')
 
@@ -126,6 +132,23 @@ class BaseNetwork():
         for layer in self:
             if hasattr(layer, 'w'):
                 yield layer
+
+    def get_size(self, mode='G'):
+        size = 0
+        for layer in self:
+            size += layer.get_size(mode)
+
+
+    @property
+    def dropout_used(self):
+        d_used = False
+        for layer in self:
+            try:
+                if layer.p_dropout < 1:
+                    d_used = True
+            except:
+                pass
+        return d_used
 
     def predict(self, x):
         return self(x)
@@ -156,7 +179,6 @@ class Sequential(BaseNetwork):
 
 
     def forward(self, a, mode='test'):
-        #self[0].a = a  # layer #0 is just there for saving the training data. it gets accessed in the last iteration in the loop in backpropagation during a_next = self[l - 1].a
         for layer in self:
             a = layer(a, mode)
         return a
@@ -166,7 +188,6 @@ class Sequential(BaseNetwork):
 
         self.forward(x, mode='train')
         self.backward(x, y)
-
 
     def backward(self, x, y, verbose=0):
 
@@ -189,23 +210,27 @@ class Sequential(BaseNetwork):
             dout = self[l].backward(dout)
             if verbose: print(f'got error_prev for {self[l]}, {dout.shape=}')
 
+    def loss(self, x, y, mode='test', verbose=False):
+        ypred = self(x, mode=mode)
+        return self.evaluate_costfunction(ypred, y, verbose=verbose)
 
-    def get_loss(self, x, ytrue, average_examples=True, mode='test', verbose=False):
+    def evaluate_costfunction(self, ypred, ytrue, verbose=False, fast=False):
 
-        ypred = self.forward(x, mode)
-        loss = self.loss_fct(ypred, ytrue, average_examples=average_examples)
-
+        loss = self.loss_fct(ypred, ytrue, average_examples=True)
         regularizer_loss = sum(layer.loss_from_regularizers() for layer in self)
+        total_loss = loss + regularizer_loss
 
         if verbose:
-            print(f'{loss=:.4e}, {regularizer_loss=:.4e}')
+            print(f'total loss: {total_loss:.4e}, ({loss=:.4e}, {regularizer_loss=:.4e})')
 
-        return loss + regularizer_loss
+        return total_loss
+
 
     def fix_dropout_seed(self):
         seed = np.random.randint(2**32 - 1)
         for layer in self:
             layer.dropout_seed = seed
+
 
     def fit(self, x, y, epochs=1, batch_size=128, validation_data=None, gradients_to_check_each_epoch=None, verbose=True):
         ytrain_labels = np.argmax(y, axis=0)
@@ -230,21 +255,25 @@ class Sequential(BaseNetwork):
             minibatches = misc.minibatches(x, y, batch_size=batch_size)
             for m, minibatch in enumerate(minibatches):
 
-
+                print(m, end = ' ', flush=True)
                 if gradients_to_check_each_epoch and m == 0:
                     #self.fix_dropout_seed()
                     pass
 
                 self.train_on_batch(*minibatch)
 
-                losses.append(self.get_loss(*minibatch))
+                loss = self.evaluate_costfunction(
+                    ypred=self[-1].a,
+                    ytrue=minibatch[1]
+                )
+                losses.append(loss)
 
                 # important: do gradient checking before weights are changed!
                 if gradients_to_check_each_epoch and m == 0:
                     if gradients_to_check_each_epoch == 'all':
                         self.complete_gradient_check(*minibatch)
                     else:
-                        goodness = self.gradient_checks(*minibatch, eps=10**(-6), checks=gradients_to_check_each_epoch)
+                        goodness = self.gradient_checks(*minibatch, eps=10**(-6), checks=gradients_to_check_each_epoch, verbose=True)
                         grad_printout = f'gradcheck: {goodness:.3e}'
 
 
@@ -252,17 +281,18 @@ class Sequential(BaseNetwork):
                 self.optimizer.update_weights()
 
 
-            a_train = self(x)
+            #a_train = self(x)
             #print(a_train)
-            ytrain_pred = np.argmax(a_train, axis=0)
-            train_correct = np.sum(ytrain_pred == ytrain_labels)
+            #ytrain_pred = np.argmax(a_train, axis=0)
+            train_correct = 0
+            #train_correct = np.sum(ytrain_pred == ytrain_labels)
             loss = np.mean(losses)
 
             if validation_data:
-                a_test = self(xtest)
-                ytest_pred = np.argmax(a_test, axis=0)
-                test_correct = np.sum(ytest_pred == ytest_labels)
-                val_loss = self.get_loss(xtest, ytest)
+                ytest_pred = self(xtest)
+                ytest_pred_labels = np.argmax(ytest_pred, axis=0)
+                test_correct = np.sum(ytest_pred_labels == ytest_labels)
+                val_loss = self.evaluate_costfunction(ytest_pred, ytest)
 
                 val_printout = f'{val_loss=:.3f}, test: {test_correct}/{Ntest}'
 
@@ -285,26 +315,31 @@ class Sequential(BaseNetwork):
         for sign in [+1, -1]:
 
             self[layer_id].w[weight_idx] = w_original + sign * eps # change weight
-            gradient_manual += sign * self.get_loss(x, ytrue, mode='gradient', average_examples=True)
+
+            ypred = self.forward(x, mode='gradient')
+            gradient_manual += sign * self.evaluate_costfunction(ypred, ytrue)
 
         self[layer_id].w[weight_idx] = w_original  # restore weight
-
 
         gradient_manual /= (2*eps)
         return gradient_manual
 
 
-    def gradient_checks(self, x, ytrue, checks=15, eps=10**(-6)):
+    def gradient_checks(self, x, ytrue, checks=15, eps=10**(-6), verbose=False):
         '''
         Carries out several gradient checks in random places.
         '''
 
-        grads = np.zeros(checks)
-        grads_backprop = np.zeros(checks)
+        self._grads = defaultdict(list)
+        self._grads_backprop = defaultdict(list)
 
-        for check in range(checks):
+        check = 0
+        while check < checks:
 
-            layer_id = np.random.randint(1, len(self))
+            layer_id = np.random.randint(1, len(self) + 1)
+            if self[layer_id] not in self.trainable_layers():
+                continue
+
             shape = self[layer_id].w.shape
             weight_idx = tuple(np.random.choice(dim) for dim in shape)
             gradient = self.gradient_check(
@@ -315,20 +350,36 @@ class Sequential(BaseNetwork):
                 weight_idx=weight_idx
             )
 
-            grads[check] = gradient
-            grads_backprop[check] = self[layer_id].dw[weight_idx]
+            self._grads[layer_id].append(gradient)
+            self._grads_backprop[layer_id].append(self[layer_id].dw[weight_idx])
 
-        goodness = misc.rel_error(grads, grads_backprop)
+            check += 1
 
-        return goodness
+        goodness = []
+
+        if verbose: print('')
+        for l in self._grads.keys():
+            goodness_layer = misc.rel_error(self._grads[l], self._grads_backprop[l])
+            goodness.append(goodness_layer)
+
+            if verbose:
+                print(f'goodness {self[l].name}: {goodness_layer:.3e}')
+                if len(self._grads[l]) < 8 and goodness_layer > 1e-4:
+                    print(f'grads manual {self[l].name} {self._grads[l]}')
+                    print(f'grads backprp {self[l].name} {self._grads_backprop[l]}')
+        if verbose: print('')
+
+
+        return max(goodness)
 
 
     def complete_gradient_check(self, x, y, eps=10**(-6)):
-        ''' Checks the gradient for every weight in the network.'''
+        """ Checks the gradient for every weight in the network.
+            For computational reasons, can only be used in very small networks."""
         self._gradchecks = []
         worst_check = -np.inf
 
-        for layer in self:
+        for layer in self.trainable_layers():
 
             gradient_manual = np.zeros(layer.w.shape)
 
@@ -346,7 +397,7 @@ class Sequential(BaseNetwork):
                 gradient_manual[idx] = gradient
 
             #print(gradient_manual)
-            #print(f'grad backprop:\n{layer.dw}\ngrad manual\n{gradient_manual}')
+            print(f'grad backprop:\n{layer.dw}\ngrad manual\n{gradient_manual}')
 
             self._gradchecks.append(gradient_manual)
             goodness = misc.rel_error(gradient_manual, layer.dw)

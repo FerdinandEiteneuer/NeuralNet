@@ -1,4 +1,5 @@
 import itertools
+import sys
 
 import numpy as np
 
@@ -91,7 +92,8 @@ class Conv2D(Layer):
         self.w = kernel_initializers.create(self.kernel_initializer, shape)
         self.dw = np.zeros(self.w.shape)
 
-        self.b = np.zeros((f, 1))
+        #self.b = np.zeros((f, 1))
+        self.b = np.zeros((1,1,f,1))
         self.db = np.zeros(self.b.shape)
 
         output_height = int( (self.prev_height + 2*self.p - self.kernel_size)/self.stride + 1 )
@@ -106,13 +108,14 @@ class Conv2D(Layer):
 
     def forward(self, x, mode='test'):
 
-        print(f'forward {self.name}')
-        print(f'{x.shape=}')
+        #print(f'forward {self.name}')
+        #print(f'{x.shape=}')
         self.x = x
 
         if self.padding == 'same':
             a = np.pad(x, pad_width=self.pads, mode='constant', constant_values=0)
-
+        else:
+            a = x
         nb_examples = a.shape[-1]
 
 
@@ -121,33 +124,38 @@ class Conv2D(Layer):
         self.z = np.zeros((height, width, self.filters, nb_examples))
 
         #a = a[:,:,:,np.newaxis,:] #(height, width, c_prev, m) -> (height, width, c_prev, AXIS, m)
-        W = self.w[...,np.newaxis] #(f, f, c_prev, c) -> (f, f, c_prev, c, AXIS)
+        #W = self.w[...,np.newaxis] #(f, f, c_prev, c) -> (f, f, c_prev, c, AXIS)
 
         k = self.kernel_size
 
         for h, w in product(height, width):
+
+            #print(h,w)
             image_part = a[h: h + k, w: w + k, ...]
-
-            #product = image_part * W
-            #print(f'product = {product.shape}')
-            
             conv = np.einsum('ijkm,ijkn', self.w, image_part)
-            #conv = np.sum(image_part * W, axis=(0, 1, 2))
-            #print(f'{image_part.shape=}')
-            #print(f'{conv.shape=}')
-            #print(f'put into {self.z[h, w, ...].shape} z')
-            self.z[h, w, ...] = conv + self.b
+            self.z[h, w, ...] = conv# + self.b
 
+        self.z += self.b
         self.a = self.g(self.z)
 
-        print(f'forward {self.name} done')
+        #print(f'forward {self.name} done')
         return self.a
 
+
     def backward(self, dout):
+        dlayer = self.g(self.z, derivative=True)
+
+        dout = dout * dlayer
+
         self.dw = self.get_dw(dout)
-        self.dx = self.get_dx(dout)
-        self.db = np.sum(dout, axis=(0,1,3))
-        return self.dx, self.dw, self.db
+        self.db = np.sum(dout, axis=(0,1,3), keepdims=True)
+
+        if self.layer_id > 1:
+            dx = self.get_dx(dout)
+        else:
+            dx = None
+        return dx
+
 
     def get_dx(self, dout):
 
@@ -173,6 +181,7 @@ class Conv2D(Layer):
 
         return dx
 
+
     def get_dw(self, dout):
         dw = np.zeros(self.w.shape)
 
@@ -184,11 +193,11 @@ class Conv2D(Layer):
         for h, w in product(HH, WW):
             x_part = x_pad[h:h+H, w:w+W, ...]
 
-            print('dout   ', dout.shape)
-            print('x_part ', x_part.shape)
+            #print('dout   ', dout.shape)
+            #print('x_part ', x_part.shape)
             conv = np.einsum('ijuw,ijvw', x_part, dout)
 
-            print(conv.shape)
+            #print(conv.shape)
             dw[h,w, ...] = conv
         return dw
 

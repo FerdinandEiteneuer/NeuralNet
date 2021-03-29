@@ -58,6 +58,22 @@ class Layer():
     def name(self):
         return f'{self.__class__.__name__.lower()}_{self.class_layer_id}'  # e.g: dense_1
 
+    def get_size(self, mode='G'):
+        """
+        Returns size of layer. Counts only the numpy arrays.
+        """
+        variables = ['w','dw', 'b', 'db', 'a','z','x']
+        size = 0
+        for var in dir(c):
+            try:
+                size += getattr(self, var).nbytes
+            except AttributeError:
+                pass
+
+        K = 1024
+        factor = {'1': 1, None: 1, 'K': K, 'M': K**2, 'G': K**3}
+        return size / factor[mode]
+
 if __name__ == '__main__':
     l = Layer()
     print(str(l))

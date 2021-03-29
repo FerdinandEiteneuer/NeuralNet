@@ -49,7 +49,7 @@ def softmax(z, derivative=False):
 
     exp_z = np.exp(z - np.max(z))  # subtract max for numerical stability
     norm = np.sum(exp_z, axis=0, keepdims=True)
-
+    #print(norm)
     exp_norm = exp_z / norm
 
     if not derivative:

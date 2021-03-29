@@ -7,7 +7,7 @@ import numpy as np
 import sys
 import os
 
-DTYPE = 'float64'
+DTYPE = 'float32'
 
 
 def reduce_data(data, factor=0.2):

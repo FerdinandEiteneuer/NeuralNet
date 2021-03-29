@@ -14,7 +14,7 @@ class Dense(Layer):
             kernel_regularizer=None,
             bias_regularizer=None,
             input_shape=None,
-            p_dropout=1,
+            #p_dropout=1,
             verbose=False):
 
         super().__init__()
@@ -32,8 +32,8 @@ class Dense(Layer):
         self.kernel_regularizer = kernel_regularizer(self, 'w') if kernel_regularizer else None
         self.bias_regularizer = bias_regularizer(self, 'b') if bias_regularizer else None
 
-        assert 0 < p_dropout <= 1, f'{p_dropout=} is not in (0,1]. Note: p_dropout is the probabilty to keep a neuron'
-        self.p_dropout = p_dropout
+        #assert 0 < p_dropout <= 1, f'{p_dropout=} is not in (0,1]. Note: p_dropout is the probabilty to keep a neuron'
+        #self.p_dropout = p_dropout
 
     def prepare_params(self, input_shape=None):
         if input_shape:
@@ -57,7 +57,7 @@ class Dense(Layer):
         self.z = np.dot(self.w, x) + self.b
 
         self.a = self.g(self.z)
-
+        """
         if mode == 'train':
             p = self.p_dropout
             self.dropout_mask = (np.random.rand(*self.a.shape) < p) / p
@@ -66,14 +66,14 @@ class Dense(Layer):
             self.a *= self.dropout_mask  # need to reuse the original dropout mask used for backprop, do not create a new one!
         elif mode == 'test':
             pass
-
+        """
         return self.a
 
 
     def backward(self, dout):
 
         #print(f'in backward {self.name}:', np.all(self.dropout_mask == 1))
-        dout = self.dropout_mask * dout
+        #dout = self.dropout_mask * dout
 
         dlayer = self.g(self.z, derivative=True)
 

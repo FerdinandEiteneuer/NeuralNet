@@ -6,6 +6,8 @@ class crossentropy:
 
     @staticmethod
     def function(ypred, ytrue, average_examples=True):
+        #ypred[ypred == 0] = 1e-6
+
         if average_examples:
             N = ytrue.shape[1]
             loss = - 1 / N * np.sum(ytrue*np.log(ypred))

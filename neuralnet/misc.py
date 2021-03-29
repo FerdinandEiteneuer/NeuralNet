@@ -8,6 +8,8 @@ def rel_error(x, y):
     """
     Returns relative error between x and y.
     """
+    x = np.array(x)
+    y = np.array(y)
     return np.max(np.abs(x - y) / (np.maximum(1e-8, np.abs(x) + np.abs(y))))
 
 def split(x, y, split_portion=0.8):
