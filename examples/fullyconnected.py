@@ -8,6 +8,7 @@ import os
 
 from neuralnet.network import Sequential
 from neuralnet.dense import Dense
+from neuralnet.dropout import Dropout
 from neuralnet.activations import relu, sigmoid, linear, tanh, softmax, lrelu
 from neuralnet.loss_functions import mse, crossentropy
 from neuralnet.optimizers import SGD, Nadam
@@ -30,7 +31,7 @@ if __name__ == '__main__':
 
     model = Sequential()
 
-    model.add(Dense(200, tanh, input_shape=input_dim, kernel_initializer=normal, p_dropout=0.5))
+    model.add(Dense(200, tanh, input_shape=input_dim, kernel_initializer=normal))
     model.add(Dense(100, tanh, kernel_initializer=normal, kernel_regularizer=L1_L2(1e-4, 1e-3)))
     model.add(Dense(output_dim, softmax))
 
@@ -41,8 +42,8 @@ if __name__ == '__main__':
     model.compile(loss = crossentropy, optimizer=nadam)
     print(model.summary())
 
-    print('calculating loss for initial sanity check: ', end='')
-    model.get_loss(xtrain, ytrain, average_examples=True, verbose=True)
+    print('calculating loss for initial sanity check:')
+    model.loss(xtrain, ytrain, verbose=True)
 
     model.fit(
         x=xtrain,
@@ -50,6 +51,6 @@ if __name__ == '__main__':
         epochs=100,
         batch_size=500,
         validation_data=(xtest, ytest),
-        gradients_to_check_each_epoch=3,
+        gradients_to_check_each_epoch=10,
         verbose=True
     )
