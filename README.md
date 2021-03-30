@@ -16,6 +16,8 @@ This is a little project for myself, to understand the inner workings of neural 
 ### program
 
 ```python
+
+# setup code ...
 xtrain, xtest, ytrain, ytest = load_mnist.load(fraction_of_data=1)
 
 xtrain = np.reshape(xtrain, (28**2, -1))
