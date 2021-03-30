@@ -6,11 +6,7 @@ from . import activations
 
 
 class Dropout(Layer):
-    def __init__(
-            self,
-            p_dropout=1,
-            input_shape=None,
-            verbose=False):
+    def __init__(self, p_dropout):
 
         super().__init__()
 

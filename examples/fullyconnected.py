@@ -17,7 +17,7 @@ from neuralnet.kernel_initializers import normal, glorot_uniform
 
 from neuralnet.data import load_mnist
 
-np.random.seed(123)  # reproducibility
+#np.random.seed(123)  # reproducibility
 
 if __name__ == '__main__':
 
@@ -31,7 +31,8 @@ if __name__ == '__main__':
 
     model = Sequential()
 
-    model.add(Dense(200, tanh, input_shape=input_dim, kernel_initializer=normal))
+    model.add(Dense(400, tanh, input_shape=input_dim, kernel_initializer=normal))
+    model.add(Dropout(0.5)),
     model.add(Dense(100, tanh, kernel_initializer=normal, kernel_regularizer=L1_L2(1e-4, 1e-3)))
     model.add(Dense(output_dim, softmax))
 
@@ -48,9 +49,9 @@ if __name__ == '__main__':
     model.fit(
         x=xtrain,
         y=ytrain,
-        epochs=100,
+        epochs=10,
         batch_size=500,
         validation_data=(xtest, ytest),
-        gradients_to_check_each_epoch=10,
+        gradients_to_check_each_epoch=5,
         verbose=True
     )

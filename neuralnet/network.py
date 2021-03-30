@@ -21,7 +21,7 @@ __all__ = ['Sequential']
 
 class BaseNetwork():
 
-    def __init__(self, layers=None):
+    def __init__(self, *args, layers=None, **kwargs):
 
         self._dense_layers = 0
         self._conv_layers = 0
@@ -151,10 +151,15 @@ class BaseNetwork():
         return d_used
 
     def predict(self, x):
-        return self(x)
+        return self(x, mode='test')
 
 
 class Sequential(BaseNetwork):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.progbar = misc.ProgressBar()
+
 
     def compile(self, loss, optimizer):
 
@@ -189,6 +194,7 @@ class Sequential(BaseNetwork):
         self.forward(x, mode='train')
         self.backward(x, y)
 
+
     def backward(self, x, y, verbose=0):
 
         final_layer = self[-1]
@@ -210,9 +216,11 @@ class Sequential(BaseNetwork):
             dout = self[l].backward(dout)
             if verbose: print(f'got error_prev for {self[l]}, {dout.shape=}')
 
+
     def loss(self, x, y, mode='test', verbose=False):
         ypred = self(x, mode=mode)
         return self.evaluate_costfunction(ypred, y, verbose=verbose)
+
 
     def evaluate_costfunction(self, ypred, ytrue, verbose=False, fast=False):
 
@@ -233,6 +241,7 @@ class Sequential(BaseNetwork):
 
 
     def fit(self, x, y, epochs=1, batch_size=128, validation_data=None, gradients_to_check_each_epoch=None, verbose=True):
+
         ytrain_labels = np.argmax(y, axis=0)
         Ntrain = x.shape[-1]
 
@@ -247,15 +256,27 @@ class Sequential(BaseNetwork):
         #if not gradients_to_check_each_epoch:
         grad_printout = ''
 
+        self.progbar.setup(
+            epochs=epochs,
+            steps_per_epoch = max(1, Ntrain // batch_size),
+            verbose=verbose
+        )
+
         for epoch in range(1, epochs + 1):
+
+            self.progbar.epoch += 1
 
             losses = []
             self.optimizer.lr *= 1
 
             minibatches = misc.minibatches(x, y, batch_size=batch_size)
+
+            cnt = 0
+            self.progbar.step = 0
             for m, minibatch in enumerate(minibatches):
 
-                print(m, end = ' ', flush=True)
+                cnt += 1
+                #print(m, end = ' ', flush=True)
                 if gradients_to_check_each_epoch and m == 0:
                     #self.fix_dropout_seed()
                     pass
@@ -268,37 +289,50 @@ class Sequential(BaseNetwork):
                 )
                 losses.append(loss)
 
+                mb_pred_labels = np.argmax(self[-1].a, axis=0)
+                mb_true_labels = np.argmax(minibatch[1], axis=0)
+                correctly_labeled = np.sum(mb_pred_labels == mb_true_labels)
+                minibatch_accuracy = correctly_labeled / batch_size
+
+
+                if minibatch_accuracy > 1:
+                    print(ypred_labels, ypred_labels.shape)
+                    print(correctly_labeled)
+                    print(minibatch_accuracy)
+                    sys.exit('ups')
+                assert batch_size == self[-1].a.shape[-1]
+
+                self.progbar.step += 1
+                self.progbar.loss = loss
+                self.progbar.train_accuracy = minibatch_accuracy
+
+
                 # important: do gradient checking before weights are changed!
                 if gradients_to_check_each_epoch and m == 0:
                     if gradients_to_check_each_epoch == 'all':
                         self.complete_gradient_check(*minibatch)
                     else:
-                        goodness = self.gradient_checks(*minibatch, eps=10**(-6), checks=gradients_to_check_each_epoch, verbose=True)
+                        goodness = self.gradient_checks(*minibatch, eps=10**(-6), checks=gradients_to_check_each_epoch, verbose=0)
                         grad_printout = f'gradcheck: {goodness:.3e}'
+                        self.progbar.gradient_check = goodness
 
 
                 #self.complete_gradient_check(*minibatch)
                 self.optimizer.update_weights()
 
+                self.progbar.write()
 
-            #a_train = self(x)
-            #print(a_train)
-            #ytrain_pred = np.argmax(a_train, axis=0)
-            train_correct = 0
-            #train_correct = np.sum(ytrain_pred == ytrain_labels)
-            loss = np.mean(losses)
 
             if validation_data:
                 ytest_pred = self(xtest)
-                ytest_pred_labels = np.argmax(ytest_pred, axis=0)
-                test_correct = np.sum(ytest_pred_labels == ytest_labels)
                 val_loss = self.evaluate_costfunction(ytest_pred, ytest)
 
-                val_printout = f'{val_loss=:.3f}, test: {test_correct}/{Ntest}'
+                ytest_pred_labels = np.argmax(ytest_pred, axis=0)
+                test_correct = np.sum(ytest_pred_labels == ytest_labels)
+                val_acc = test_correct / Ntest
 
-            print(f'{epoch=}, {loss=:.3f}, train: {train_correct}/{Ntrain}, {val_printout}, {grad_printout}')
+                self.progbar.append(val_loss, val_acc)
 
-            self.epoch += 1
         return losses
 
 
