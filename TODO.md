@@ -1,5 +1,10 @@
-get_loss: was ist mit mode='test' etc für dropout? kann ich eifnach ypred=self[-1].a nehmen?
+# issues
 
-regularizers conv net
+* conv2d layers do not have regularizers yed
+* conv2d layers stride/pad not fully supported
 
-model.loss(xtrain, ytrain) lässt das memory volllaufen -> nach und nach daten durch das netz schieben und loss accumulieren ist die einzige möglichkeit
+# features
+
+* maxpool2d layer
+
+
