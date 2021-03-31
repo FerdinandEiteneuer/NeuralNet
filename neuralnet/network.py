@@ -261,7 +261,7 @@ class Sequential(BaseNetwork):
             steps_per_epoch=max(1, Ntrain // batch_size),
             verbose=verbose,
             history=history,
-            epochs=self.epoch + epochs
+            epochs=self.epoch + epochs - 1
         )
 
         for epoch in range(self.epoch, self.epoch + epochs):
