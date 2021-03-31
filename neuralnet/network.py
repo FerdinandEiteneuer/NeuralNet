@@ -159,7 +159,7 @@ class Sequential(BaseNetwork):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.progbar = misc.ProgressBar()
-
+        self.epoch = 1
 
     def compile(self, loss, optimizer):
 
@@ -229,7 +229,7 @@ class Sequential(BaseNetwork):
         total_loss = loss + regularizer_loss
 
         if verbose:
-            print(f'total loss: {total_loss:.4e}, ({loss=:.4e}, {regularizer_loss=:.4e})')
+            print(f'total loss: {total_loss:.4e}, ({loss=:.4e}, {regularizer_loss=:.4e})\n')
 
         return total_loss
 
@@ -254,58 +254,36 @@ class Sequential(BaseNetwork):
             val_printout = ''
 
         #if not gradients_to_check_each_epoch:
-        grad_printout = ''
+
+        history = misc.History(exponential_moving_average_constant=0.9)
 
         self.progbar.setup(
-            epochs=epochs,
-            steps_per_epoch = max(1, Ntrain // batch_size),
-            verbose=verbose
+            steps_per_epoch=max(1, Ntrain // batch_size),
+            verbose=verbose,
+            history=history,
+            epochs=self.epoch + epochs
         )
 
-        for epoch in range(1, epochs + 1):
+        for epoch in range(self.epoch, self.epoch + epochs):
 
-            self.progbar.epoch += 1
-
-            losses = []
             self.optimizer.lr *= 1
 
             minibatches = misc.minibatches(x, y, batch_size=batch_size)
 
-            cnt = 0
-            self.progbar.step = 0
             for m, minibatch in enumerate(minibatches):
 
-                cnt += 1
-                #print(m, end = ' ', flush=True)
-                if gradients_to_check_each_epoch and m == 0:
-                    #self.fix_dropout_seed()
-                    pass
+                history.update_current_state(epoch=epoch, minibatch=m)
 
                 self.train_on_batch(*minibatch)
 
-                loss = self.evaluate_costfunction(
+                train_loss = self.evaluate_costfunction(
                     ypred=self[-1].a,
                     ytrue=minibatch[1]
                 )
-                losses.append(loss)
 
-                mb_pred_labels = np.argmax(self[-1].a, axis=0)
-                mb_true_labels = np.argmax(minibatch[1], axis=0)
-                correctly_labeled = np.sum(mb_pred_labels == mb_true_labels)
-                minibatch_accuracy = correctly_labeled / batch_size
+                train_acc = misc.accuracy(self[-1].a, minibatch[1])
 
-
-                if minibatch_accuracy > 1:
-                    print(ypred_labels, ypred_labels.shape)
-                    print(correctly_labeled)
-                    print(minibatch_accuracy)
-                    sys.exit('ups')
-                assert batch_size == self[-1].a.shape[-1]
-
-                self.progbar.step += 1
-                self.progbar.loss = loss
-                self.progbar.train_accuracy = minibatch_accuracy
-
+                history.update_minibatch(train_loss, train_acc)
 
                 # important: do gradient checking before weights are changed!
                 if gradients_to_check_each_epoch and m == 0:
@@ -313,27 +291,29 @@ class Sequential(BaseNetwork):
                         self.complete_gradient_check(*minibatch)
                     else:
                         goodness = self.gradient_checks(*minibatch, eps=10**(-6), checks=gradients_to_check_each_epoch, verbose=0)
-                        grad_printout = f'gradcheck: {goodness:.3e}'
-                        self.progbar.gradient_check = goodness
-
-
+                        history.update_gradients(goodness)
                 #self.complete_gradient_check(*minibatch)
-                self.optimizer.update_weights()
 
+
+                self.optimizer.update_weights()
                 self.progbar.write()
 
 
             if validation_data:
                 ytest_pred = self(xtest)
+
                 val_loss = self.evaluate_costfunction(ytest_pred, ytest)
+                val_acc = misc.accuracy(ytest_pred, ytest_labels)
 
-                ytest_pred_labels = np.argmax(ytest_pred, axis=0)
-                test_correct = np.sum(ytest_pred_labels == ytest_labels)
-                val_acc = test_correct / Ntest
+                history.update_val_data(val_loss, val_acc)
+                #ytest_pred_labels = np.argmax(ytest_pred, axis=0)
+                #test_correct = np.sum(ytest_pred_labels == ytest_labels)
+                #val_acc = test_correct / Ntest
 
-                self.progbar.append(val_loss, val_acc)
+                self.progbar.write_end_of_episode()
 
-        return losses
+        self.epoch += epochs
+        return history
 
 
     def gradient_check(self, x, ytrue, eps, layer_id, weight_idx):

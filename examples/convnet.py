@@ -25,7 +25,7 @@ np.set_printoptions(precision=4, linewidth=120)
 
 if __name__ == '__main__':
 
-    xtrain, xtest, ytrain, ytest = load_mnist.load(fraction_of_data=1)
+    xtrain, xtest, ytrain, ytest = load_mnist.load(fraction_of_data=0.01)
 
     input_dim = xtrain.shape[0]
     output_dim = ytrain.shape[0]
@@ -36,7 +36,7 @@ if __name__ == '__main__':
 
     model.add(Conv2D(
         kernel_size=3,
-        filters=15,
+        filters=16,
         stride=1,
         padding='same',
         input_shape=(28, 28, 1),
@@ -44,14 +44,24 @@ if __name__ == '__main__':
         )
     )
 
+    #model.add(Conv2D(
+    #    kernel_size=3,
+    #    filters=16,
+    #    stride=1,
+    #    padding='same',
+    #    activation=relu,
+    #    )
+    #)
+
+
     model.add(Flatten())
-    model.add(Dense(64, relu, kernel_initializer=kernel_init))
-    #model.add(Dropout(1))
+    model.add(Dense(640, relu, kernel_initializer=kernel_init))
+    model.add(Dropout(0.5))
     model.add(Dense(output_dim, softmax, kernel_initializer=kernel_init))
 
 
     sgd = SGD(learning_rate=2*10**(-1), bias_correction=True, momentum=0.9)
-    nadam = Nadam(learning_rate=0.3*10**(-3), beta_1=0.9, beta_2=0.999, eps=10**(-8))
+    nadam = Nadam(learning_rate=2*10**(-4), beta_1=0.9, beta_2=0.999, eps=10**(-8))
 
     model.compile(loss = crossentropy, optimizer=nadam)
     print(model)
@@ -62,14 +72,16 @@ if __name__ == '__main__':
 
     #sys.exit()
     # initial sanity check. print out loss + regularization loss
-    # model.loss(xtrain, ytrain, verbose=True)  # calculation may not fit into memory
+    #model.loss(xtrain[...,:6000], ytrain[...,:6000], verbose=True)  # calculation may not fit into memory
+
 
     model.fit(
         x=xtrain,
         y=ytrain,
         epochs=10,
-        batch_size=100,
+        batch_size=50,
         validation_data=(xtest, ytest),
-        #gradients_to_check_each_epoch=10,
-        verbose=True
+        gradients_to_check_each_epoch=10,
+        verbose=True,
+        #show_running_means=True,
     )
