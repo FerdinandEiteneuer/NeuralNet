@@ -1,3 +1,7 @@
+"""
+Convolution and its correspoding utility (MaxPooling2D and Flatten) Layers.
+"""
+
 import itertools
 import sys
 
@@ -6,9 +10,87 @@ import numpy as np
 from .layer import Layer
 from . import kernel_initializers
 
+
 def product(*args):
+    """
+    For iterating over multiple indices.
+
+    >>> for x,y,z in product(3,4,5):
+    >>>     pass
+
+    is equivalent to
+
+    >>> for x in range(3):
+    >>>      for y in range(4):
+    >>>         for z in range(5):
+    >>>             pass
+    """
     ranges = map(range, args)
     return itertools.product(*ranges)
+
+
+class MaxPooling2D(Layer):
+    """
+    MaxPooling2D Layer.
+    Note: currently the backward implementation is really slow.
+    """
+
+    def __init__(self, pool_size, stride):
+        super().__init__()
+        self.pool_size = pool_size
+        self.stride = stride
+
+
+    def forward(self, a, mode='test'):
+
+        self.x = a
+
+        Hout, Wout, C = self.output_dim
+        N = a.shape[-1]
+
+        out = np.zeros((Hout, Wout, C, N))
+
+        for h, w in product(Hout, Wout):
+            hh = slice(h * self.stride, h * self.stride + self.pool_size)
+            hh = slice(w * self.stride, w * self.stride + self.pool_size)
+
+            x = a[hh, ww, ...]
+            out[h, w, ...] = np.max(x, axis=(0,1))
+
+        return out
+
+
+    def prepare_params(self, input_shape):
+
+        H, W, C = input_shape
+
+        Hout = int(1 + (H - self.pool_size)/self.stride)
+        Wout = int(1 + (W - self.pool_size)/self.stride)
+
+        self.output_dim = (Hout, Wout, C)
+        return self.output_dim
+
+
+    def backward(self, dout):
+
+        H, W, C, H = self.x.shape
+        Hout, Wout, _, _ = dout.shape
+
+        dx = np.zeros_like(self.x)
+
+        for hout, wout, c, n in product(Hout, Wout, C, N):
+            h = slice(self.stride * hout, self.stride * hout + self.pool_size)
+            w = slice(self.stride * wout, self.stride * hout + self.pool_size)
+
+            where = np.argwhere(self.x[h,w,c,n] == np.max(self.x[h,w,c,n]))
+            xidx, yidx = where[0]
+
+            h = self.stride * hout + xidx
+            w = self.stride * wout + yidx
+
+            dx[h, w, c, n] = dout[hout, wout, c, n]
+
+        return dx
 
 
 class Flatten(Layer):
