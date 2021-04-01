@@ -19,28 +19,12 @@ def reduce_data(data, factor=0.2):
 
     return data[..., :new_size]
 
-def _reduce_data(xtrain, xtest, ytrain, ytest, factor=0.2):
-
-    size_train = xtrain.shape[-1]
-    nb_train = int(factor * size_train)
-
-    size_test = xtest.shape[-1]
-    nb_test = int(factor * size_test)
-
-    xtrain = xtrain[...,:nb_train]
-    ytrain = ytrain[...,:nb_train]
-
-    xtest = xtest[...,:nb_test]
-    ytest = ytest[...,:nb_test]
-
-    return xtrain, xtest, ytrain, ytest
-
 def one_hot(y, dim=10):
     matrix = np.eye(dim, dtype=DTYPE)[y]
     matrix = matrix.T
     return matrix
 
-def load(fraction_of_data=1):
+def load(fraction_of_data=1, preprocess=True):
 
     datadir = os.path.dirname(__file__)
     path = os.path.join(datadir, 'mnist.npz')
@@ -49,40 +33,40 @@ def load(fraction_of_data=1):
     with np.load(path) as data:
 
         # load from disk
-        x_train = data['x_train']
-        y_train = data['y_train']
-        x_test = data['x_test']
-        y_test = data['y_test']
+        xtrain = data['x_train']
+        ytrain = data['y_train']
+        xtest = data['x_test']
+        ytest = data['y_test']
 
         # transform into correct format
-        y_train = one_hot(y_train)
-        y_test = one_hot(y_test)
+        ytrain = one_hot(ytrain)
+        ytest = one_hot(ytest)
 
         # put examples last
-        x_train = np.transpose(x_train, (1, 2, 0))
-        x_test = np.transpose(x_test, (1, 2, 0))
+        xtrain = np.transpose(xtrain, (1, 2, 0))
+        xtest = np.transpose(xtest, (1, 2, 0))
 
-        # introduce 1 channel (i.e x_train.shape = (28, 28, 1, 60000)
-        x_train = x_train[:,:,np.newaxis,:]
-        x_test = x_test[:,:,np.newaxis,:]
+        # introduce 1 channel (i.e xtrain.shape = (28, 28, 1, 60000)
+        xtrain = xtrain[:,:,np.newaxis,:]
+        xtest = xtest[:,:,np.newaxis,:]
 
-        x_train = x_train.astype(DTYPE)
-        x_test = x_test.astype(DTYPE)
+        xtrain = xtrain.astype(DTYPE)
+        xtest = xtest.astype(DTYPE)
 
-        # preprocessing
-        x_train /= 255.0
-        x_test /= 255.0
+        if preprocess:
+            xtrain = (xtrain - xtrain.mean()) / xtrain.std()
+            xtest = (xtest - xtest.mean()) / xtest.std()
 
         if fraction_of_data != 1:
-            x_train = reduce_data(x_train, factor=fraction_of_data)
-            x_test = reduce_data(x_test, factor=fraction_of_data)
+            xtrain = reduce_data(xtrain, factor=fraction_of_data)
+            xtest = reduce_data(xtest, factor=fraction_of_data)
 
-            y_train = reduce_data(y_train, factor=fraction_of_data)
-            y_test = reduce_data(y_test, factor=fraction_of_data)
+            ytrain = reduce_data(ytrain, factor=fraction_of_data)
+            ytest = reduce_data(ytest, factor=fraction_of_data)
 
-        return x_train, x_test, y_train, y_test
+        return xtrain, xtest, ytrain, ytest
 
 if __name__ == '__main__':
 
-    x_train, x_test, y_train, y_test = load()
+    xtrain, xtest, ytrain, ytest = load()
 

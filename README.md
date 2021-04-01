@@ -43,7 +43,7 @@ print(model.summary())
 print('calculating loss for initial sanity check:')
 model.loss(xtrain, ytrain, verbose=True)
 
-model.fit(
+history = model.fit(
     x=xtrain,
     y=ytrain,
     epochs=10,
