@@ -24,7 +24,10 @@ def one_hot(y, dim=10):
     matrix = matrix.T
     return matrix
 
-def load(fraction_of_data=1, preprocess=True):
+def load(fraction_of_data=1, nb_points=None, preprocess=True):
+
+    if fraction_of_data < 1 and nb_points is not None:
+        raise ValueError('can only use \'nb_points\' or \'fraction_of_data\', not both')
 
     datadir = os.path.dirname(__file__)
     path = os.path.join(datadir, 'mnist.npz')
@@ -56,6 +59,10 @@ def load(fraction_of_data=1, preprocess=True):
         if preprocess:
             xtrain = (xtrain - xtrain.mean()) / xtrain.std()
             xtest = (xtest - xtest.mean()) / xtest.std()
+
+        if nb_points is not None:
+            total_nb = xtrain.shape[-1]
+            fraction_of_data = nb_points / total_nb
 
         if fraction_of_data != 1:
             xtrain = reduce_data(xtrain, factor=fraction_of_data)
