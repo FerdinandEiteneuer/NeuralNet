@@ -4,12 +4,14 @@ This is a little project for myself, to understand the inner workings of neural 
 
 ## features
 
-* fully connected, conv2d and dropout layer
-* activation functions (tanh, sigmoid, relu, lrelu, softmax)
-* loss functions (mse, crossentropy)
+* dense, conv2d, maxpool2d, flatten and dropout layer
+* crossentropy and mse loss functions
+* sgd with momentum and nadam optimizers
 * gradient checking
-* sgd with momentum and nadam optimizer
+* tanh, sigmoid, relu, lrelu and softmax activation functions
 * L1, L2, L1_L2 regularizers
+* normal and xavier initialization
+* API is copied from keras
 
 ## example of the API
 
