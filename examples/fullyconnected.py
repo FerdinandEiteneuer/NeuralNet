@@ -49,9 +49,10 @@ if __name__ == '__main__':
     model.fit(
         x=xtrain,
         y=ytrain,
-        epochs=40,
+        epochs=10,
         batch_size=500,
         validation_data=(xtest, ytest),
         gradients_to_check_each_epoch=5,
         verbose=True
     )
+

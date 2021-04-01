@@ -52,7 +52,7 @@ class MaxPooling2D(Layer):
 
         for h, w in product(Hout, Wout):
             hh = slice(h * self.stride, h * self.stride + self.pool_size)
-            hh = slice(w * self.stride, w * self.stride + self.pool_size)
+            ww = slice(w * self.stride, w * self.stride + self.pool_size)
 
             x = a[hh, ww, ...]
             out[h, w, ...] = np.max(x, axis=(0,1))
@@ -73,16 +73,18 @@ class MaxPooling2D(Layer):
 
     def backward(self, dout):
 
-        H, W, C, H = self.x.shape
+        H, W, C, N = self.x.shape
         Hout, Wout, _, _ = dout.shape
 
         dx = np.zeros_like(self.x)
 
         for hout, wout, c, n in product(Hout, Wout, C, N):
             h = slice(self.stride * hout, self.stride * hout + self.pool_size)
-            w = slice(self.stride * wout, self.stride * hout + self.pool_size)
+            w = slice(self.stride * wout, self.stride * wout + self.pool_size)
 
-            where = np.argwhere(self.x[h,w,c,n] == np.max(self.x[h,w,c,n]))
+            x_part = self.x[h, w, c, n]
+
+            where = np.argwhere(x_part == np.max(x_part, axis=(0,1)))
             xidx, yidx = where[0]
 
             h = self.stride * hout + xidx

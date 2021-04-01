@@ -10,7 +10,7 @@ import os
 from neuralnet.network import Sequential
 from neuralnet.dropout import Dropout
 from neuralnet.dense import Dense
-from neuralnet.conv2d import Conv2D, Flatten
+from neuralnet.conv2d import Conv2D, Flatten, MaxPooling2D
 from neuralnet.activations import relu, sigmoid, linear, tanh, softmax, lrelu
 from neuralnet.loss_functions import mse, crossentropy
 from neuralnet.optimizers import SGD, Nadam
@@ -25,7 +25,7 @@ np.set_printoptions(precision=4, linewidth=120)
 
 if __name__ == '__main__':
 
-    xtrain, xtest, ytrain, ytest = load_mnist.load(fraction_of_data=0.01)
+    xtrain, xtest, ytrain, ytest = load_mnist.load(nb_points=1000)
 
     input_dim = xtrain.shape[0]
     output_dim = ytrain.shape[0]
@@ -41,22 +41,29 @@ if __name__ == '__main__':
         padding='same',
         input_shape=(28, 28, 1),
         activation=relu,
+        kernel_initializer=kernel_init
         )
     )
 
-    #model.add(Conv2D(
-    #    kernel_size=3,
-    #    filters=16,
-    #    stride=1,
-    #    padding='same',
-    #    activation=relu,
-    #    )
-    #)
+    model.add(MaxPooling2D(
+        pool_size=2,
+        stride=2
+    ))
+
+    model.add(Conv2D(
+        kernel_size=3,
+        filters=16,
+        stride=1,
+        padding='same',
+        activation=relu,
+        kernel_initializer=kernel_init
+        )
+    )
 
 
     model.add(Flatten())
-    model.add(Dense(640, relu, kernel_initializer=kernel_init))
-    model.add(Dropout(0.5))
+    #model.add(Dense(640, relu, kernel_initializer=kernel_init))
+    #model.add(Dropout(0.5))
     model.add(Dense(output_dim, softmax, kernel_initializer=kernel_init))
 
 
@@ -66,13 +73,8 @@ if __name__ == '__main__':
     model.compile(loss = crossentropy, optimizer=nadam)
     print(model)
 
-    #c =  model[1]
-    #x = xtrain[..., :250]
-    #out=c(x)
-
-    #sys.exit()
     # initial sanity check. print out loss + regularization loss
-    #model.loss(xtrain[...,:6000], ytrain[...,:6000], verbose=True)  # calculation may not fit into memory
+    model.loss(xtrain[...,:6000], ytrain[...,:6000], verbose=True)  # calculation may not fit into memory
 
 
     model.fit(
@@ -81,7 +83,6 @@ if __name__ == '__main__':
         epochs=10,
         batch_size=50,
         validation_data=(xtest, ytest),
-        gradients_to_check_each_epoch=10,
+        gradients_to_check_each_epoch=20,
         verbose=True,
-        #show_running_means=True,
     )

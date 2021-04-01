@@ -35,7 +35,7 @@ class Layer():
 
         output_dim = tuple(self.output_dim) + (None, )
 
-        s = f'{self.name + " " + class_name:29}{str(output_dim):26}{n_parameters:<}'
+        s = f'{self.name + " " + class_name:30}{str(output_dim):26}{n_parameters:<}'
         return s
 
     def __call__(self, a, mode='test'):

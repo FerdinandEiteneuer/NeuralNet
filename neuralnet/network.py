@@ -49,8 +49,7 @@ class BaseNetwork():
 
         width = 65
         s  = '\n' + width * '_' + '\n'
-        #s += 'Layer (type)                 Output Shape              Param #\n'
-        s += 'Layer (type)                 Output Shape              Param #   \n'
+        s += 'Layer (type)                  Output Shape              Param #   \n'
         s += width * '=' + '\n'
         number_params = 0
         params = ['w','b','beta','gamma']
@@ -98,32 +97,10 @@ class BaseNetwork():
 
         self._layers.append(layer)
 
-        # setting layer id, which is the index of the layer in model, e.g model[2]
-        # returns the layer with layer_id 2
-        layer.layer_id = len(self._layers) - 1
-
-
-        layer.class_layer_id = self.layer_numbers[type(layer)]  # for attribute "name"
+        layer.layer_id = len(self._layers) - 1  # access layer by using model[layer_id]
+        layer.class_layer_id = self.layer_numbers[type(layer)]  # enumerates the number of layers of that type
         self.layer_numbers[type(layer)] += 1
-        """
-        if isinstance(layer, Dense):
-            layer.class_layer_id = self._dense_layers
-            self._dense_layers += 1
 
-        elif isinstance(layer, Conv2D):
-            layer.class_layer_id = self._conv_layers
-            self._conv_layers += 1
-
-        elif isinstance(layer, Flatten):
-            layer.class_layer_id = self._flatten_layers
-            self._flatten_layers += 1
-
-        elif isinstance(layer, Dropout):
-            layer.class_layer_id = self._dropout_layers
-            self._dropout_layers += 1
-        else:
-            raise TypeError(f'Do not know how to handle {layer=}')
-        """
         if len(self._layers) >= 3:
 
             prev_layer = self._layers[-2]
@@ -197,7 +174,6 @@ class Sequential(BaseNetwork):
 
 
     def train_on_batch(self, x, y):
-
         self.forward(x, mode='train')
         self.backward(x, y)
 
