@@ -69,33 +69,31 @@ def minibatches(x, y, batch_size=32):
 
 class ProgressBar():
     """
-    [==========>...................]
+    if model.fit(verbose=True) was called, this Object creates changing output information.
     """
-
     def __init__(self):
-        self.epochs = 0
-        self.steps_per_epoch = 0
-
-        # config
         self.width_arrow = 20
         self.verbose=True
 
-    def setup(self, steps_per_epoch, history, epochs, verbose=True):
-        self.steps_per_epoch = steps_per_epoch
+    def setup(self, history, verbose=True):
         self.history = history
         self.verbose = verbose
-        self.epochs = epochs
 
     def clear_line(self):
         print(200*'\b', end='', flush=True)
 
     @property
+    def steps_per_epoch(self):
+        return self.history.steps_per_epoch
+    @property
     def step(self):
         return self.history.step
-
     @property
     def epoch(self):
-        return self.history.epoch
+        return self.history.current_epoch
+    @property
+    def epochs(self):
+        return self.history.end_epoch
 
     def arrow(self):
         prog = self.step / self.steps_per_epoch
@@ -134,7 +132,12 @@ class ProgressBar():
 
 class History:
 
-    def __init__(self, exponential_moving_average_constant=0.8):
+    def __init__(self,
+                 steps_per_epoch,
+                 current_epoch,
+                 end_epoch,
+                 exponential_moving_average_constant=0.8):
+
 
         self.β = exponential_moving_average_constant
 
@@ -147,38 +150,43 @@ class History:
         self.train_loss = MovingExponentialAverage(β=self.β)
         self.train_acc = MovingExponentialAverage(β=self.β)
 
-        self.epoch = None
+        self.steps_per_epoch = steps_per_epoch
+        self.current_epoch = current_epoch
+        self.end_epoch = end_epoch
+        self.step = 0
 
     def update_minibatch(self, train_loss, train_acc):
+
+        self.step += 1
+
+        if self.step > self.steps_per_epoch:
+            self.current_epoch += 1
+            self.step = 1
 
         self.train_loss.update(train_loss)
         self.train_acc.update(train_acc)
 
-        self.train_losses[self.epoch].append(train_loss)
-        self.train_accs[self.epoch].append(train_acc)
+        self.train_losses[self.current_epoch].append(train_loss)
+        self.train_accs[self.current_epoch].append(train_acc)
 
     def update_val_data(self, val_loss, val_acc):
-        self.val_losses[self.epoch].append(val_loss)
-        self.val_accs[self.epoch].append(val_acc)
+        self.val_losses[self.current_epoch].append(val_loss)
+        self.val_accs[self.current_epoch].append(val_acc)
 
     def update_gradients(self, goodness):
-        self.gradient_checks[self.epoch].append(goodness)
+        self.gradient_checks[self.current_epoch].append(goodness)
 
     def get_last_val_data(self):
-        loss = self.val_losses[self.epoch][-1]
-        acc = self.val_accs[self.epoch][-1]
+        loss = self.val_losses[self.current_epoch][-1]
+        acc = self.val_accs[self.current_epoch][-1]
         return loss, acc
 
     def get_last_gradient_check(self):
-        goodness = self.gradient_checks[self.epoch]
+        goodness = self.gradient_checks[self.current_epoch]
         if goodness == []:
             return None
         else:
             return goodness[-1]
-
-    def update_current_state(self, epoch, minibatch):
-        self.epoch = epoch
-        self.step = minibatch
 
 
 class MovingExponentialAverage:
