@@ -12,17 +12,21 @@ import numpy as np
 from .layer import Layer
 from .dense import Dense
 from .dropout import Dropout
-from .conv2d import Conv2D, Flatten
+from .conv2d import Conv2D, Flatten, MaxPooling2D
 from .activations import softmax
 from . import misc
 
 __all__ = ['Sequential']
 
+_layer_types = [Dense, Dropout, Conv2D, Flatten, MaxPooling2D]
+
 
 class BaseNetwork():
 
+
     def __init__(self, *args, layers=None, **kwargs):
 
+        self.layer_numbers = {ltype: 0 for ltype in _layer_types}
         self._dense_layers = 0
         self._conv_layers = 0
         self._flatten_layers = 0
@@ -98,7 +102,10 @@ class BaseNetwork():
         # returns the layer with layer_id 2
         layer.layer_id = len(self._layers) - 1
 
-        # setting class layer ids (used ONLY in __str__)
+
+        layer.class_layer_id = self.layer_numbers[type(layer)]  # for attribute "name"
+        self.layer_numbers[type(layer)] += 1
+        """
         if isinstance(layer, Dense):
             layer.class_layer_id = self._dense_layers
             self._dense_layers += 1
@@ -116,7 +123,7 @@ class BaseNetwork():
             self._dropout_layers += 1
         else:
             raise TypeError(f'Do not know how to handle {layer=}')
-
+        """
         if len(self._layers) >= 3:
 
             prev_layer = self._layers[-2]
@@ -255,13 +262,16 @@ class Sequential(BaseNetwork):
 
         #if not gradients_to_check_each_epoch:
 
-        history = misc.History(exponential_moving_average_constant=0.9)
+        history = misc.History(
+            current_epoch=self.epoch,
+            end_epoch=self.epoch + epochs - 1,
+            steps_per_epoch=max(1, Ntrain // batch_size),
+            exponential_moving_average_constant=0.9
+        )
 
         self.progbar.setup(
-            steps_per_epoch=max(1, Ntrain // batch_size),
-            verbose=verbose,
             history=history,
-            epochs=self.epoch + epochs - 1
+            verbose=verbose,
         )
 
         for epoch in range(self.epoch, self.epoch + epochs):
@@ -271,8 +281,6 @@ class Sequential(BaseNetwork):
             minibatches = misc.minibatches(x, y, batch_size=batch_size)
 
             for m, minibatch in enumerate(minibatches):
-
-                history.update_current_state(epoch=epoch, minibatch=m)
 
                 self.train_on_batch(*minibatch)
 
@@ -306,9 +314,6 @@ class Sequential(BaseNetwork):
                 val_acc = misc.accuracy(ytest_pred, ytest_labels)
 
                 history.update_val_data(val_loss, val_acc)
-                #ytest_pred_labels = np.argmax(ytest_pred, axis=0)
-                #test_correct = np.sum(ytest_pred_labels == ytest_labels)
-                #val_acc = test_correct / Ntest
 
                 self.progbar.write_end_of_episode()
 

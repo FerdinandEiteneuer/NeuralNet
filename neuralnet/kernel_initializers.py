@@ -3,10 +3,6 @@ import inspect
 
 __all__ = ['glorot_uniform', 'normal', 'xavier', 'integers']
 
-def glorot_uniform(shape):
-    output_dim, input_dim = shape[:2]
-    bound = 6.0/np.sqrt(output_dim + input_dim)
-    return np.random.uniform(-bound, bound, size=shape)
 
 def normal(shape, scale=0.001):
     return scale * np.random.normal(size=shape)
@@ -15,7 +11,11 @@ def integers(shape):
     return np.random.randint(0, 5, size=shape)
 
 def xavier(shape):
-    raise NotImplementedError
+    bound = np.sqrt(6/np.sum(shape))
+    return np.random.uniform(-bound, bound, size=shape)
+
+def glorot_uniform(shape):
+    return xavier(shape)
 
 
 def create(initializer, shape, **kwargs):

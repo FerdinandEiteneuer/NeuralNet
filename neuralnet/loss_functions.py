@@ -5,8 +5,9 @@ import sys
 class crossentropy:
 
     @staticmethod
-    def function(ypred, ytrue, average_examples=True):
-        #ypred[ypred == 0] = 1e-6
+    def function(ypred, ytrue, average_examples=True, ε=1e-12):
+
+        ypred = np.clip(ypred, ε, 1)
 
         if average_examples:
             N = ytrue.shape[1]
@@ -17,9 +18,10 @@ class crossentropy:
             return loss_per_example
 
     @staticmethod
-    def derivative(ypred, ytrue, average_examples=False):
+    def derivative(ypred, ytrue, average_examples=False, ε=1e-12):
 
-        ypred[ypred == 0] = 1e-6
+        ypred = np.clip(ypred, ε, 1)
+
         if average_examples:
             N = ypred.shape[1]  # num datapoints
             der_loss = - 1 / N * np.sum(ytrue / ypred)
