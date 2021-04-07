@@ -236,8 +236,6 @@ class Sequential(BaseNetwork):
         else:
             val_printout = ''
 
-        #if not gradients_to_check_each_epoch:
-
         history = misc.History(
             current_epoch=self.epoch,
             end_epoch=self.epoch + epochs - 1,

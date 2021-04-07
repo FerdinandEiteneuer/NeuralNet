@@ -4,11 +4,33 @@ Convolution and its correspoding utility (MaxPooling2D and Flatten) Layers.
 
 import itertools
 import sys
+import time
 
 import numpy as np
 
 from .layer import Layer
 from . import kernel_initializers
+
+times = calls = 0
+
+def time_it(func):
+    ##times = 0
+    #calls = 0
+    def wrapper(*args, **kwargs):
+
+        start_t = time.time()
+        result = func(*args, **kwargs)
+        stop_t = time.time()
+
+        global times, calls
+        times += (stop_t - start_t)
+        calls += 1
+
+        avg_time = times / calls
+        print(f'avg time {func.__name__}: {avg_time} s')
+        return result
+
+    return wrapper
 
 
 def product(*args):
@@ -39,25 +61,7 @@ class MaxPooling2D(Layer):
         super().__init__()
         self.pool_size = pool_size
         self.stride = stride
-
-
-    def forward(self, a, mode='test'):
-
-        self.x = a
-
-        Hout, Wout, C = self.output_dim
-        N = a.shape[-1]
-
-        out = np.zeros((Hout, Wout, C, N))
-
-        for h, w in product(Hout, Wout):
-            hh = slice(h * self.stride, h * self.stride + self.pool_size)
-            ww = slice(w * self.stride, w * self.stride + self.pool_size)
-
-            x = a[hh, ww, ...]
-            out[h, w, ...] = np.max(x, axis=(0,1))
-
-        return out
+        self.masks = {}
 
 
     def prepare_params(self, input_shape):
@@ -71,7 +75,61 @@ class MaxPooling2D(Layer):
         return self.output_dim
 
 
+    def create_mask(self, x_part, h, w):
+        mask = np.zeros_like(x_part)
+
+        H, W, C, N = x_part.shape
+
+        x_row = x_part.reshape(H*W, C, N)
+        idx = np.argmax(x_row, axis=0)
+
+        c_idx, n_idx = np.indices((C, N))
+
+        mask.reshape(H*W, C, N)[idx, c_idx, n_idx] = 1
+        self.masks[(h,w)] = mask
+
+
+    def forward(self, a, mode='test'):
+
+        self.x = a
+
+        Hout, Wout, C = self.output_dim
+        N = a.shape[-1]
+
+        out = np.zeros((Hout, Wout, C, N))
+
+
+        for h, w in product(Hout, Wout):
+            hh = slice(h * self.stride, h * self.stride + self.pool_size)
+            ww = slice(w * self.stride, w * self.stride + self.pool_size)
+
+            x_part = a[hh, ww, ...]
+
+            out[h, w, ...] = np.max(x_part, axis=(0,1))
+
+            self.create_mask(x_part, h, w)
+
+        return out
+
+
     def backward(self, dout):
+
+        Hout, Wout, C, N = dout.shape
+
+        dx = np.zeros_like(self.x)
+
+        for hout, wout in product(Hout, Wout):
+
+            h = slice(self.stride * hout, self.stride * hout + self.pool_size)
+            w = slice(self.stride * wout, self.stride * wout + self.pool_size)
+
+            mask = self.masks[(hout, wout)]
+            dx[h, w, :, :] = dout[hout, wout, ...] * mask
+
+        return dx
+
+
+    def backward_slow(self, dout):
 
         H, W, C, N = self.x.shape
         Hout, Wout, _, _ = dout.shape

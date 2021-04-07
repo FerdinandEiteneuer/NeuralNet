@@ -52,7 +52,7 @@ if __name__ == '__main__':
 
     model.add(Conv2D(
         kernel_size=3,
-        filters=16,
+        filters=32,
         stride=1,
         padding='same',
         activation=relu,
@@ -62,8 +62,8 @@ if __name__ == '__main__':
 
 
     model.add(Flatten())
-    #model.add(Dense(640, relu, kernel_initializer=kernel_init))
-    #model.add(Dropout(0.5))
+    model.add(Dense(640, relu, kernel_initializer=kernel_init))
+    model.add(Dropout(0.5))
     model.add(Dense(output_dim, softmax, kernel_initializer=kernel_init))
 
 
@@ -74,15 +74,15 @@ if __name__ == '__main__':
     print(model)
 
     # initial sanity check. print out loss + regularization loss
-    model.loss(xtrain[...,:6000], ytrain[...,:6000], verbose=True)  # calculation may not fit into memory
+    #model.loss(xtrain[...,:6000], ytrain[...,:6000], verbose=True)  # calculation may not fit into memory
 
 
     model.fit(
         x=xtrain,
         y=ytrain,
-        epochs=10,
-        batch_size=50,
+        epochs=200,
+        batch_size=100,
         validation_data=(xtest, ytest),
-        gradients_to_check_each_epoch=20,
+        gradients_to_check_each_epoch=0,
         verbose=True,
     )
