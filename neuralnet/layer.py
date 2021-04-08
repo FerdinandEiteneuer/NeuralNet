@@ -18,6 +18,13 @@ class Layer():
         self.dropout_seed = 0
         self.trainable_parameters = []
 
+    @property
+    def n_parameters(self):
+        n = 0
+        for par in self.trainable_parameters:
+            n += np.product(getattr(self, par).shape)
+        return n
+
     def __str__(self):
         """
         possible result of __str__:
@@ -40,7 +47,7 @@ class Layer():
 
         output_dim = tuple(self.output_dim) + (None, )
 
-        s = f'{self.name + " " + class_name:30}{str(output_dim):26}{n_parameters:<}'
+        s = f'{self.name + " " + class_name:34}{str(output_dim):26}{self.n_parameters:<}'
         return s
 
     def __call__(self, a, mode='test'):

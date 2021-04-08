@@ -14,11 +14,12 @@ from .dense import Dense
 from .dropout import Dropout
 from .conv2d import Conv2D, Flatten, MaxPooling2D
 from .activations import softmax
+from .batchnorm import BatchNormalization
 from . import misc
 
 __all__ = ['Sequential']
 
-_layer_types = [Dense, Dropout, Conv2D, Flatten, MaxPooling2D]
+_layer_types = [Dense, Dropout, Conv2D, Flatten, MaxPooling2D, BatchNormalization]
 
 
 class BaseNetwork():
@@ -27,10 +28,6 @@ class BaseNetwork():
     def __init__(self, *args, layers=None, **kwargs):
 
         self.layer_numbers = {ltype: 0 for ltype in _layer_types}
-        self._dense_layers = 0
-        self._conv_layers = 0
-        self._flatten_layers = 0
-        self._dropout_layers = 0
 
         self._layers = [Layer(layer_id=0)]
         self.w = None
@@ -47,19 +44,16 @@ class BaseNetwork():
 
     def __str__(self):
 
-        width = 65
+        width = 69
         s  = '\n' + width * '_' + '\n'
-        s += 'Layer (type)                  Output Shape              Param #   \n'
+        s += 'Layer (type)                      Output Shape              Param #   \n'
         s += width * '=' + '\n'
-        number_params = 0
-        params = ['w','b','beta','gamma']
+        params = ['w','b','β','γ']
+
         for layer in self:
             s += str(layer) + '\n'
-            for param in params:
-                if hasattr(layer, param):
-                    par = getattr(layer, param)
-                    N = np.product(par.shape)
-                    number_params += N
+
+        number_params = sum(layer.n_parameters for layer in self)
 
         s += f'{width * "="}\n' \
             f'Total params: {number_params}\n' \
@@ -114,6 +108,8 @@ class BaseNetwork():
 
     def trainable_layers(self):
         for layer in self:
+            #if len(layer.trainable_parameters) > 0:
+            #    yield layer
             if hasattr(layer, 'w'):
                 yield layer
 
@@ -145,8 +141,8 @@ class Sequential(BaseNetwork):
         self.progbar = misc.ProgressBar()
         self.epoch = 1
 
-    def compile(self, loss, optimizer):
 
+    def compile(self, loss, optimizer):
         self.loss_fct = loss().function
         self.derivative_loss_fct = loss().derivative
 

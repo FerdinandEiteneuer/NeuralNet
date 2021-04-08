@@ -15,6 +15,8 @@ from . import kernel_initializers
 
 class BatchNormalization(Layer):
 
+    __name__ = 'batchnorm'
+
     def __init__(self, epsilon=1e-3, momentum=0.99):
         super().__init__()
 
@@ -24,16 +26,21 @@ class BatchNormalization(Layer):
         self.running_mean = 0
         self.running_var = 0
 
+    @property
+    def name(self):
+        return f'batchnorm_{self.class_layer_id}'  # e.g: dense_1
 
     def prepare_params(self, input_shape):
+
         self.input_shape = input_shape
         self.output_dim = input_shape
 
-        self.γ = np.ones((self.output_dim, 1))   # scaling
-        self.β = np.zeros((self.output_dim, 1))  # shift
+        shape = self.output_dim + (1, )
+        self.γ = np.ones(shape)   # scaling
+        self.β = np.zeros(shape)  # shift
 
-        self.running_mean = np.zeros((self.output_dim, 1))
-        self.running_var= np.zeros((self.output_dim, 1))
+        self.running_mean = np.zeros(shape)
+        self.running_var= np.zeros(shape)
 
         self.trainable_parameters = ['γ', 'β']
 
@@ -44,11 +51,12 @@ class BatchNormalization(Layer):
         self.x = a
         nb_examples = a.shape[-1]
 
+        #if mode == 'test' or mode == 'gradient':
         if mode == 'test':
+            self.a = self.γ * (a - self.running_mean) / np.sqrt(self.running_var + self.ε) + self.β
 
-            self.a = self.γ * (a - self.running_mean) / np.sqrt(self.running_var) + self.β
-
-        elif mode == 'train':
+        #elif mode == 'train':
+        elif mode == 'train' or mode == 'gradient':
 
             self.sample_mean = a.mean(axis=1, keepdims=True)
             self.sample_var = a.var(axis=1, keepdims=True)
@@ -76,8 +84,8 @@ class BatchNormalization(Layer):
         sum_dout = np.sum(dout, axis=1, keepdims=True)
         diff = x - sample_μ
 
-        print('norm', σ_norm)
-        print('gamma', self.γ)
+        #print('norm', σ_norm)
+        #print('gamma', self.γ)
 
         self.dx = self.γ / σ_norm * (
                 + dout
