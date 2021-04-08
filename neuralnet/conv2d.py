@@ -238,6 +238,8 @@ class Conv2D(Layer):
         self.b = np.zeros((1,1,f,1))
         self.db = np.zeros(self.b.shape)
 
+        self.trainable_parameters = ['w', 'b']
+
         output_height = int( (self.prev_height + 2*self.p - self.kernel_size)/self.stride + 1 )
         output_width = int( (self.prev_width + 2*self.p - self.kernel_size)/self.stride + 1 )
 

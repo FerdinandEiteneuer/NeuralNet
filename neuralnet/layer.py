@@ -16,7 +16,7 @@ class Layer():
         self.bias_regularizer = None
         self.batch_size = None
         self.dropout_seed = 0
-        self.cache = {}
+        self.trainable_parameters = []
 
     def __str__(self):
         """
@@ -25,12 +25,17 @@ class Layer():
         """
         class_name = '(' + self.__class__.__name__ + ')'  # e.g: (Dense)
 
-        shape = self.w.shape if hasattr(self, 'w') else 'n/a'
+        n_parameters = 0
 
-        if hasattr(self, 'w') and hasattr(self, 'b'):
-            n_parameters = np.product(self.w.shape) + np.product(self.b.shape)
-        else:
-            n_parameters = '0'
+        for par in self.trainable_parameters:
+            n_parameters += np.product(getattr(self, par).shape)
+
+        #if hasattr(self, 'w') and hasattr(self, 'b'):
+        #    n_parameters = np.product(self.w.shape) + np.product(self.b.shape)
+        #elif hasattr(self, 'γ') and hasattr(self, 'β'):
+        #    n_parameters = np.product(self.γ.shape) + np.product(self.β.shape)
+        #else:
+        #    n_parameters = '0'
 
 
         output_dim = tuple(self.output_dim) + (None, )

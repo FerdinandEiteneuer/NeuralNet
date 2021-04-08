@@ -1,6 +1,7 @@
 from .network import *
 from .dense import *
 from .conv2d import *
+from .batchnorm import *
 from .activations import *
 from .loss_functions import *
 from .optimizers import *

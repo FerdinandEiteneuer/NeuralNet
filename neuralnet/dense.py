@@ -32,8 +32,6 @@ class Dense(Layer):
         self.kernel_regularizer = kernel_regularizer(self, 'w') if kernel_regularizer else None
         self.bias_regularizer = bias_regularizer(self, 'b') if bias_regularizer else None
 
-        #assert 0 < p_dropout <= 1, f'{p_dropout=} is not in (0,1]. Note: p_dropout is the probabilty to keep a neuron'
-        #self.p_dropout = p_dropout
 
     def prepare_params(self, input_shape=None):
         if input_shape:
@@ -46,6 +44,8 @@ class Dense(Layer):
 
         self.b = np.zeros(self.output_dim + (1,) )
         self.db = np.zeros(self.b.shape)
+
+        self.trainable_parameters = ['w', 'b']
         return self.output_dim
 
 
