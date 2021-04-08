@@ -12,10 +12,7 @@ from .layer import Layer
 from . import kernel_initializers
 
 
-
 class BatchNormalization(Layer):
-
-    __name__ = 'batchnorm'
 
     def __init__(self, epsilon=1e-3, momentum=0.99):
         super().__init__()
@@ -43,7 +40,7 @@ class BatchNormalization(Layer):
         self.running_var= np.zeros(shape)
 
         self.trainable_parameters = ['γ', 'β']
-
+        self.nontrainable_parameters = ['running_mean', 'running_var']
         return self.output_dim
 
 
@@ -51,19 +48,17 @@ class BatchNormalization(Layer):
         self.x = a
         nb_examples = a.shape[-1]
 
-        #if mode == 'test' or mode == 'gradient':
         if mode == 'test':
+
             self.a = self.γ * (a - self.running_mean) / np.sqrt(self.running_var + self.ε) + self.β
 
-        #elif mode == 'train':
         elif mode == 'train' or mode == 'gradient':
 
-            self.sample_mean = a.mean(axis=1, keepdims=True)
-            self.sample_var = a.var(axis=1, keepdims=True)
+            self.sample_mean = a.mean(axis=-1, keepdims=True)
+            self.sample_var = a.var(axis=-1, keepdims=True)
 
             self.running_mean = self.μ * self.running_mean + (1 - self.μ) * self.sample_mean
             self.running_var = self.μ * self.running_var + (1 - self.μ) * self.sample_var
-
 
             self.xhat = (a - self.sample_mean) / np.sqrt(self.sample_var + self.ε)
             self.a = self.γ * self.xhat + self.β
@@ -81,20 +76,17 @@ class BatchNormalization(Layer):
 
         # calculate intermediate variables
         σ_norm = np.sqrt(self.sample_var + self.ε)
-        sum_dout = np.sum(dout, axis=1, keepdims=True)
+        sum_dout = np.sum(dout, axis=-1, keepdims=True)
         diff = x - sample_μ
-
-        #print('norm', σ_norm)
-        #print('gamma', self.γ)
 
         self.dx = self.γ / σ_norm * (
                 + dout
                 - 1/N * sum_dout
-                - 1/(N * σ_norm**2) * diff * np.sum(dout * diff, axis=1, keepdims=True)
+                - 1/(N * σ_norm**2) * diff * np.sum(dout * diff, axis=-1, keepdims=True)
                 )
 
 
-        self.dγ = np.sum(dout * self.xhat, axis=1, keepdims=True)
+        self.dγ = np.sum(dout * self.xhat, axis=-1, keepdims=True)
         self.dβ = sum_dout
 
         return self.dx

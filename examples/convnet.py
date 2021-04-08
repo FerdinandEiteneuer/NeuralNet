@@ -9,6 +9,7 @@ import os
 
 from neuralnet.network import Sequential
 from neuralnet.dropout import Dropout
+from neuralnet.batchnorm import BatchNormalization
 from neuralnet.dense import Dense
 from neuralnet.conv2d import Conv2D, Flatten, MaxPooling2D
 from neuralnet.activations import relu, sigmoid, linear, tanh, softmax, lrelu
@@ -25,7 +26,7 @@ np.set_printoptions(precision=4, linewidth=120)
 
 if __name__ == '__main__':
 
-    xtrain, xtest, ytrain, ytest = load_mnist.load(nb_points=1000)
+    xtrain, xtest, ytrain, ytest = load_mnist.load(nb_points=60000)
 
     input_dim = xtrain.shape[0]
     output_dim = ytrain.shape[0]
@@ -60,6 +61,22 @@ if __name__ == '__main__':
         )
     )
 
+    model.add(MaxPooling2D(
+        pool_size=2,
+        stride=2
+    ))
+
+    model.add(Conv2D(
+        kernel_size=3,
+        filters=32,
+        stride=1,
+        padding='same',
+        activation=relu,
+        kernel_initializer=kernel_init
+        )
+    )
+
+    model.add(BatchNormalization())
 
     model.add(Flatten())
     model.add(Dense(640, relu, kernel_initializer=kernel_init))
@@ -83,6 +100,6 @@ if __name__ == '__main__':
         epochs=200,
         batch_size=100,
         validation_data=(xtest, ytest),
-        gradients_to_check_each_epoch=0,
+        gradients_to_check_each_epoch=5,
         verbose=True,
     )

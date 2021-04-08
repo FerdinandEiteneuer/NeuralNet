@@ -17,11 +17,23 @@ class Layer():
         self.batch_size = None
         self.dropout_seed = 0
         self.trainable_parameters = []
+        self.nontrainable_parameters = []
+
+    @property
+    def total_n_parameters(self):
+        return self.n_parameters + self.n_nontrainable_parameters
 
     @property
     def n_parameters(self):
         n = 0
         for par in self.trainable_parameters:
+            n += np.product(getattr(self, par).shape)
+        return n
+
+    @property
+    def n_nontrainable_parameters(self):
+        n = 0
+        for par in self.nontrainable_parameters:
             n += np.product(getattr(self, par).shape)
         return n
 
@@ -31,19 +43,6 @@ class Layer():
         dense_1 (Dense)              (10, None)                 110
         """
         class_name = '(' + self.__class__.__name__ + ')'  # e.g: (Dense)
-
-        n_parameters = 0
-
-        for par in self.trainable_parameters:
-            n_parameters += np.product(getattr(self, par).shape)
-
-        #if hasattr(self, 'w') and hasattr(self, 'b'):
-        #    n_parameters = np.product(self.w.shape) + np.product(self.b.shape)
-        #elif hasattr(self, 'γ') and hasattr(self, 'β'):
-        #    n_parameters = np.product(self.γ.shape) + np.product(self.β.shape)
-        #else:
-        #    n_parameters = '0'
-
 
         output_dim = tuple(self.output_dim) + (None, )
 

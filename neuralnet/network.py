@@ -53,12 +53,15 @@ class BaseNetwork():
         for layer in self:
             s += str(layer) + '\n'
 
-        number_params = sum(layer.n_parameters for layer in self)
+        trainable_params = sum(layer.n_parameters for layer in self)
+        nontrainable_params = sum(layer.n_nontrainable_parameters for layer in self)
+        total = trainable_params + nontrainable_params
+
 
         s += f'{width * "="}\n' \
-            f'Total params: {number_params}\n' \
-            f'Trainable params: {number_params}\n' \
-            f'Non-trainable params: 0\n' \
+            f'Total params: {total}\n' \
+            f'Trainable params: {trainable_params}\n' \
+            f'Non-trainable params: {nontrainable_params}\n' \
             f'{width * "_"}\n'
 
 

@@ -1,6 +1,3 @@
-'''
-Trains the neural numpy net with mnist data.
-'''
 
 import numpy as np
 import sys
