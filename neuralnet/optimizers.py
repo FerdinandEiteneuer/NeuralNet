@@ -1,13 +1,13 @@
-'''
+"""
 Optimizers for gradient descent
-'''
+"""
 
 import numpy as np
 
 class SGD:
-    '''
+    """
     Stochastic Gradient Descent
-    '''
+    """
     def __init__(self, learning_rate=0.01, momentum=0, bias_correction=True):
         self.lr = learning_rate
         self.beta_1 = momentum
@@ -24,9 +24,9 @@ class SGD:
 
 
     def prepare_params(self, network):
-        '''
+        """
         Initializes the momentum parameters.
-        '''
+        """
         self.network = network
 
         for layer in self.network.trainable_layers():
@@ -63,10 +63,10 @@ class SGD:
 
 
 class Nadam:
-    '''
+    """
     Nadam Optimizer. Combines nesterov, momentum, RMS prop step.
     Algorithm from https://openreview.net/pdf?id=OM0jvwB8jIp57ZJjtNEZ
-    '''
+    """
     def __init__(self, learning_rate=0.01, beta_1=0.9, beta_2=0.999, eps=10**(-8), bias_correction=True):
         self.lr = learning_rate
         self.beta_1 = beta_1
@@ -86,9 +86,9 @@ class Nadam:
         self.rms_b = {}
 
     def prepare_params(self, network):
-        '''
+        """
         Initializes the momentum parameters.
-        '''
+        """
         self.network = network
 
         for layer in self.network.trainable_layers():
