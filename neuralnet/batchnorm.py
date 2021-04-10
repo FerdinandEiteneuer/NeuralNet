@@ -69,20 +69,16 @@ class BatchNormalization(Layer):
 
         dx = np.zeros(self.x.shape)
 
-        # convenience, make names shorter
-        x = self.x
-        N = self.x.shape[-1]
-        sample_μ = self.sample_mean
-
         # calculate intermediate variables
-        σ_norm = np.sqrt(self.sample_var + self.ε)
+        N = self.x.shape[-1]
+        σ = np.sqrt(self.sample_var + self.ε)
         sum_dout = np.sum(dout, axis=-1, keepdims=True)
-        diff = x - sample_μ
+        diff = self.x - self.sample_mean
 
-        self.dx = self.γ / σ_norm * (
+        self.dx = self.γ / σ * (
                 + dout
                 - 1/N * sum_dout
-                - 1/(N * σ_norm**2) * diff * np.sum(dout * diff, axis=-1, keepdims=True)
+                - 1/(N * σ**2) * diff * np.sum(dout * diff, axis=-1, keepdims=True)
                 )
 
 

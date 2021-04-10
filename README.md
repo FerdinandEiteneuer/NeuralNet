@@ -4,7 +4,7 @@ This is a little project for myself, to understand the inner workings of neural 
 
 ## features
 
-* dense, conv2d, maxpool2d, flatten and dropout layer
+* dense, conv2d, maxpool2d, flatten, dropout and batchnorm layers
 * crossentropy and mse loss functions
 * sgd with momentum and nadam optimizers
 * gradient checking
