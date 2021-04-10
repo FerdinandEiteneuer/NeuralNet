@@ -11,27 +11,6 @@ import numpy as np
 from .layer import Layer
 from . import kernel_initializers
 
-times = calls = 0
-
-def time_it(func):
-    ##times = 0
-    #calls = 0
-    def wrapper(*args, **kwargs):
-
-        start_t = time.time()
-        result = func(*args, **kwargs)
-        stop_t = time.time()
-
-        global times, calls
-        times += (stop_t - start_t)
-        calls += 1
-
-        avg_time = times / calls
-        print(f'avg time {func.__name__}: {avg_time} s')
-        return result
-
-    return wrapper
-
 
 def product(*args):
     """
@@ -218,6 +197,7 @@ class Conv2D(Layer):
             #TODO  if this error is removed, introduce the floor function to self.p
             raise ValueError('invalid kernel size: {kernel_size}. must be an odd number')
 
+
     def prepare_params(self, input_shape=None):
 
         f, k = self.filters, self.kernel_size
@@ -234,7 +214,6 @@ class Conv2D(Layer):
         self.w = kernel_initializers.create(self.kernel_initializer, shape)
         self.dw = np.zeros(self.w.shape)
 
-        #self.b = np.zeros((f, 1))
         self.b = np.zeros((1,1,f,1))
         self.db = np.zeros(self.b.shape)
 
@@ -294,7 +273,7 @@ class Conv2D(Layer):
         self.dw = self.get_dw(dout)
         self.db = np.sum(dout, axis=(0,1,3), keepdims=True)
 
-        if self.layer_id > 1:
+        if self.layer_id > 1:  # dx is not needed in this case
             dx = self.get_dx(dout)
         else:
             dx = None

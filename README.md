@@ -11,7 +11,7 @@ This is a little project for myself, to understand the inner workings of neural 
 * tanh, sigmoid, relu, lrelu and softmax activation functions
 * L1, L2, L1_L2 regularizers
 * normal and xavier initialization
-* API is copied from keras
+* keras-like API
 
 ## example of the API
 
