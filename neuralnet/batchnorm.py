@@ -86,4 +86,3 @@ class BatchNormalization(Layer):
         self.dβ = sum_dout
 
         return self.dx
-

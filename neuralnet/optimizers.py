@@ -1,5 +1,5 @@
 """
-Optimizers for gradient descent
+Optimizers for gradient descent (SGD and Nadam)
 """
 
 import numpy as np
@@ -29,7 +29,7 @@ class SGD:
         """
         self.network = network
 
-        for layer in self.network.trainable_layers():
+        for layer in self.network.weight_layers():
 
             self.mom_w[layer.layer_id] = np.zeros(layer.w.shape)
             self.mom_b[layer.layer_id] = np.zeros(layer.b.shape)
@@ -44,7 +44,7 @@ class SGD:
     def update_weights(self):
         μ = self.beta_1  # readability
 
-        for layer in self.network.trainable_layers():
+        for layer in self.network.weight_layers():
 
             l = layer.layer_id
 
@@ -58,6 +58,12 @@ class SGD:
 
             layer.w -= self.lr * self.mom_w[l] / correction
             layer.b -= self.lr * self.mom_b[l] / correction
+
+        for layer in self.network.batchnorm_layers():
+
+            layer.γ -= self.lr * layer.dγ
+            layer.β -= self.lr * layer.dβ
+
 
         self.updates += 1
 
@@ -91,7 +97,7 @@ class Nadam:
         """
         self.network = network
 
-        for layer in self.network.trainable_layers():
+        for layer in self.network.weight_layers():
 
             l = layer.layer_id
 
@@ -115,7 +121,7 @@ class Nadam:
         t = self.updates
         ε = self.eps
 
-        for layer in self.network.trainable_layers():
+        for layer in self.network.weight_layers():
 
             l = layer.layer_id
             #momentum
@@ -141,5 +147,10 @@ class Nadam:
 
             layer.w -= self.lr * m_w / np.sqrt(n_w + ε)
             layer.b -= self.lr * m_b / np.sqrt(n_b + ε)
+
+        for layer in self.network.batchnorm_layers():
+
+            layer.γ -= self.lr * layer.dγ
+            layer.β -= self.lr * layer.dβ
 
         self.updates += 1

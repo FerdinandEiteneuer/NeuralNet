@@ -116,6 +116,15 @@ class BaseNetwork():
             if hasattr(layer, 'w'):
                 yield layer
 
+    def weight_layers(self):
+        for layer in self:
+            if hasattr(layer, 'w'):
+                yield layer
+    def batchnorm_layers(self):
+        for layer in self:
+            if type(layer) is BatchNormalization:
+                yield layer
+
     def get_size(self, mode='G'):
         size = 0
         for layer in self:

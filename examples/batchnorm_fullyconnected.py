@@ -45,7 +45,7 @@ if __name__ == '__main__':
     sgd = SGD(learning_rate=2*10**(-1), bias_correction=True, momentum=0.9)
     nadam = Nadam(learning_rate=4*10**(-4), beta_1=0.9, beta_2=0.999, eps=10**(-8))
 
-    model.compile(loss = crossentropy, optimizer=nadam)
+    model.compile(loss = crossentropy, optimizer=sgd)
     print(model.summary())
 
     print('calculating loss for initial sanity check:')
